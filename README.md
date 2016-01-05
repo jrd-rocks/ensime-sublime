@@ -113,7 +113,7 @@ Sublime Text and ENSIME Sublime should now be correctly configured. The next ste
    (and it will download much of the internet).
 
    You need to run this command once per project before you connect Ensime Sublime,
-   You will also need to re-run it whenever you change your `libraryDepdencies`.
+   You will also need to re-run it whenever you change your `libraryDependencies`.
 
 ### Connect ENSIME Sublime to ENSIME SBT
 
