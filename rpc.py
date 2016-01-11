@@ -173,16 +173,11 @@ class SymbolSearchResult(ActiveRecord):
         self.pos = SourcePosition.parse(m[":pos"]) if ":pos" in m else None
 
 
-class RefactorResult(ActiveRecord):
+class RefactorDiff(ActiveRecord):
     def populate(self, m):
-        self.status = str(m[":status"])
         self.procedure_id = m[":procedure-id"]
-        if self.status == "success":
-            self.done = True
-            pass
-        elif self.status == "failure":
-            self.done = False
-            self.reason = m[":reason"]
+        self.refactor_type = m[":refactor-type"]
+        self.diff_file = m[":diff"]
 
 
 class Member(ActiveRecord):
@@ -521,12 +516,8 @@ class Rpc(object):
     def import_suggestions(self, file_name, position, type_names, max_results):
         pass
 
-    @async_rpc(RefactorResult.parse)
-    def prepare_refactor(self, procedure_id, refactor_type, parameters, require_confirmation):
-        pass
-
-    @async_rpc()
-    def exec_refactor(self, procedure_id, refactor_type):
+    @async_rpc(RefactorDiff.parse)
+    def diff_refactor(self, procedure_id, parameters, require_confirmation):
         pass
 
     @async_rpc()
