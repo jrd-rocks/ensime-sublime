@@ -75,6 +75,9 @@
     "caption": "Ensime: Organize Imports",
     "command": "ensime_organize_imports"
   },
+  { "caption": "Ensime: Rename",
+    "command": "ensime_rename"
+  },
   {
     "caption": "Ensime: Inline Local",
     "command": "ensime_inline_local"

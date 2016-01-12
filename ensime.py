@@ -1695,6 +1695,23 @@ class EnsimeExtractRefactoring(EnsimeNewRefactoring):
         self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
 
 
+class EnsimeRename(EnsimeNewRefactoring):
+
+    def refactoring_symbol(self):
+        return 'rename'
+
+    def invoke_refactoring(self, pos):
+        self._word = self.v.substr(self.v.word(pos))
+        self._pos = pos
+        self.w.show_input_panel("New name:", '', self.rename_it, None, None)
+
+    def rename_it(self, arg):
+        params = [sym('refactorType'), self.refactoring_symbol(),
+                  sym('newName'), arg, sym('file'), self.v.file_name(),
+                  sym('start'), self._pos, sym('end'), self._pos + len(self._word)]
+        self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
+
+
 class EnsimeExtractLocal(EnsimeExtractRefactoring):
     def refactoring_symbol(self):
         return 'extractLocal'
