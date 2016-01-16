@@ -35,6 +35,7 @@
                       { "caption": "Organize imports", "command": "ensime_organize_imports"},
                       { "caption": "Inline Local", "command": "ensime_inline_local"},
                       { "caption": "Extract Local", "command": "ensime_extract_local"},
+                      { "caption": "Rename", "command": "ensime_rename_refactoring"},
                       { "caption": "Extract Method", "command": "ensime_extract_method"},
                       { "caption": "Full Type Check", "command": "ensime_typecheck_full"},
                       { "caption": "Build", "command": "ensime_build" }

@@ -86,5 +86,9 @@
   {
     "caption": "Ensime: Extract Method",
     "command": "ensime_extract_method"
+  },
+  {
+    "caption": "Ensime: Rename",
+    "command": "ensime_rename_refactoring"
   }
 ]
