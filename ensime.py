@@ -1706,6 +1706,15 @@ class EnsimeExtractRefactoring(EnsimeRefactoring):
         self.rpc.prepare_refactor(self._currentRefactorId, sym(self.refactoring_symbol()), params,
                                   False, self.handle_refactor_prepare_response)
 
+class EnsimeRenameRefactoring(EnsimeExtractRefactoring):
+    def refactoring_symbol(self):
+        return 'rename'
+
+    def extract_prompt_message(self):
+        return 'Rename: '
+
+    def extract_sym(self):
+        return sym('newName')
 
 class EnsimeExtractLocal(EnsimeExtractRefactoring):
     def refactoring_symbol(self):
