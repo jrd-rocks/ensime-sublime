@@ -1598,6 +1598,8 @@ class EnsimeNewRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
         return hash(uuid.uuid4())
 
     def run(self, edit, target=None):
+        self._temp_edit = edit
+        self._temp_target = target
         pos = int(target or self.v.sel()[0].begin())
         self._currentRefactorId = self.__nextRefactorId()
         if self.v.is_dirty():
@@ -1605,6 +1607,18 @@ class EnsimeNewRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
         self.invoke_refactoring(pos)
 
     def handle_refactor_response(self, response):
+        if response.succeeded:
+            self.refactor_successful(response)
+        else:
+            if response.try_refresh:
+                self.logger.info("Re-run requested")
+                self.run(self._temp_edit, self._temp_target)
+            else:
+                message = "Refactor failed: " + response.reason
+                self.logger.info(message)
+                self.status_message(message)
+
+    def refactor_successful(self, response):
         self.status_message("Refactoring with diff file: " + response.diff_file)
         patch_cmd = "patch -d / -p1 -i " + response.diff_file
         patch_run = os.popen(patch_cmd)
@@ -1619,9 +1633,31 @@ class EnsimeNewRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
                 error = "Refactor failed: " + response.diff_file
             self.status_message(error)
         else:
+            self.reload_file()
             self.logger.info("Refactoring succeeded, patch file: " + response.diff_file)
             self.status_message("Refactoring succeeded")
+
+    def reload_file(self):
+        view = self.v
+        original_size = view.size()
+        original_pos = view.sel()[0].begin()
+        # Load changes
+        view.run_command('revert')
+        # Wait until view loaded then move cursor to original position        
+      
+        def on_load():
+            if view.is_loading():
+                # Wait again
+                set_timeout(on_load, 50)
+            else:
+                size_diff = view.size() - original_size 
+                new_pos = original_pos + size_diff
+                view.sel().clear()
+                view.sel().add(sublime.Region(new_pos))
+                view.show(new_pos)
             self.v.sel().clear()
+        
+        on_load()
 
 
 class EnsimeAddImport(EnsimeNewRefactoring):

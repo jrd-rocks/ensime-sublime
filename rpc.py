@@ -173,11 +173,20 @@ class SymbolSearchResult(ActiveRecord):
         self.pos = SourcePosition.parse(m[":pos"]) if ":pos" in m else None
 
 
+# {':reason': 'scala.tools.nsc.interactive.FreshRunReq', ':procedure-id': -1642892474, ':status': failure}
+# {':procedure-id': -56441349, ':refactor-type': inlineLocal, ':diff': '/private/var/folders/3z/w744rp5x7ssgl_xrfgp2cqxhgzhwhl/T/ensime-diff-8187272601336300783.tmp'}
 class RefactorDiff(ActiveRecord):
     def populate(self, m):
         self.procedure_id = m[":procedure-id"]
-        self.refactor_type = m[":refactor-type"]
-        self.diff_file = m[":diff"]
+        if ":status" in m and ":reason" in m and m[":status"]:
+            self.succeeded = False
+            self.reason = m[":reason"]
+            self.try_refresh = self.reason.find("FreshRunReq") > 0
+        else:
+            self.succeeded = True
+            self.try_refresh = False
+            self.refactor_type = m[":refactor-type"]
+            self.diff_file = m[":diff"]
 
 
 class Member(ActiveRecord):
