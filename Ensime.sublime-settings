@@ -63,6 +63,6 @@
   "log_to_file": ["ui", "client", "server"],
   "connect_to_external_server": false,
   "os_independent_paths_in_dot_ensime": false,
-  "plugin_version": "0.6.0",
+  "plugin_version": "0.9.0",
   "min_ensime_server_version": "0.9.8.6"
 }

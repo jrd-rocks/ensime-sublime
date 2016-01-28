@@ -29,6 +29,7 @@ from .rpc import *
 from .sbt import *
 from .strings import *
 
+
 class EnsimeCommon(object):
     def __init__(self, owner):
         self.owner = owner
@@ -274,11 +275,13 @@ class FocusedOnly:
     def is_enabled(self):
         return bool(self.is_running() and self.env.focus)
 
+
 class PrivateToolViewUpdateCommand(EnsimeTextCommand):
     def run(self, edit, content):
         self.view.replace(edit, Region(0, self.view.size()), content)
         self.view.sel().clear()
         self.view.sel().add(Region(0, 0))
+
 
 class PrivateToolViewAppendCommand(EnsimeTextCommand):
     def run(self, edit, content):
@@ -602,16 +605,25 @@ class Client(ClientListener, EnsimeCommon):
     @call_back_into_ui_thread
     def message_compiler_ready(self, msg_id, payload):
         self.env.compiler_ready = True
-
-        filename = os.path.join(sublime.packages_path(), "Ensime", "Encouragements.txt")
-        lines = [line.strip() for line in open(filename)]
-        msg = lines[random.randint(0, len(lines) - 1)]
+        quotes = ["Let the hacking commence!",
+                  "Hacks and glory await!",
+                  "Hack and be merry!",
+                  "May the source be with you!",
+                  "Death to null!",
+                  "Find closure!",
+                  "May the _ be with you.",
+                  "CanBuildFrom[List[Dream], Reality, List[Reality]]"]
+        msg = quotes[random.randint(0, len(quotes) - 1)]
         self.status_message(
             msg + " This could be the start of a beautiful program, " + getpass.getuser().capitalize() + ".")
         self.colorize_all()
         v = self.w.active_view()
         if self.in_project(v):
             v.run_command("save")
+
+    @call_back_into_ui_thread
+    def message_compiler_restarted(self, msg_id, payload):
+        pass
 
     @call_back_into_ui_thread
     def message_indexer_ready(self, msg_id, payload):
@@ -677,7 +689,7 @@ class Client(ClientListener, EnsimeCommon):
             detail = detail[0:-len(". Check the server log.")]
         if not detail.endswith("."):
             detail += "."
-        detail += "\n\nCheck the server log at " + str(os.path.join(self.env.log_root, "server.log")) + "."
+        detail += "\n\nCheck the server log at " + str(self.env.log_file) + "."
         return detail
 
     def open_uri(self, uri):
@@ -762,6 +774,7 @@ class ServerProcess(EnsimeCommon):
             else:
                 self.proc.stderr.close()
                 break
+
 
 class Server(ServerListener, EnsimeCommon):
     def __init__(self, owner, port_file):
@@ -866,6 +879,7 @@ class Server(ServerListener, EnsimeCommon):
     def shutdown(self):
         self.proc.kill()
         self.proc = None
+
 
 def mkdir_p(dir_path):
     try:
@@ -1292,8 +1306,8 @@ class EnsimeShowSession(EnsimeWindowCommand):
         dotsession.edit(self.env)
 
 
-def _show_log(self, file_name):
-    log = self.env.log_root + os.sep + file_name
+def _show_log(self):
+    log = self.env.log_file
     line = 1
     try:
         with open(log) as f:
@@ -1303,20 +1317,12 @@ def _show_log(self, file_name):
     self.w.open_file("%s:%d:%d" % (log, line, 1), sublime.ENCODED_POSITION)
 
 
-class EnsimeShowClientLog(EnsimeWindowCommand):
+class EnsimeShowLog(EnsimeWindowCommand):
     def is_enabled(self):
         return self.is_valid()
 
     def run(self):
-        _show_log(self, "client.log")
-
-
-class EnsimeShowServerLog(EnsimeWindowCommand):
-    def is_enabled(self):
-        return self.is_valid()
-
-    def run(self):
-        _show_log(self, "server.log")
+        _show_log(self)
 
 
 class EnsimeHighlight(RunningOnly, EnsimeWindowCommand):
@@ -1392,7 +1398,8 @@ class EnsimeHandleSymbolInfo(EnsimeCommon):
             # # v.show(info.decl_pos.offset)
             # # <workaround 2> this one ignores the second open_file
             # # row, col = v.rowcol(info.decl_pos.offset)
-            # # sublime.active_window().open_file("%s:%d:%d" % (info.decl_pos.file_name, row + 1, col + 1), sublime.ENCODED_POSITION)
+            # # sublime.active_window().open_file("%s:%d:%d" % (info.decl_pos.file_name, row + 1, col + 1),
+            # # sublime.ENCODED_POSITION)
 
             file_name = info.decl_pos.file_name
             contents = None
@@ -1747,6 +1754,15 @@ class EnsimeRename(EnsimeNewRefactoring):
                   sym('start'), self._pos, sym('end'), self._pos + len(self._word)]
         self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
 
+class EnsimeRenameRefactoring(EnsimeExtractRefactoring):
+    def refactoring_symbol(self):
+        return 'rename'
+
+    def extract_prompt_message(self):
+        return 'Rename: '
+
+    def extract_sym(self):
+        return sym('newName')
 
 class EnsimeExtractLocal(EnsimeExtractRefactoring):
     def refactoring_symbol(self):

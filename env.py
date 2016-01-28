@@ -11,7 +11,6 @@ envLock = threading.RLock()
 ensime_envs = {}
 
 
-
 def for_window(window):
     if window:
         window_key = (window.folders() or [window.id()])[0]
@@ -20,7 +19,7 @@ def for_window(window):
         envLock.acquire()
         try:
             if not (window_key in ensime_envs):
-                # protection against reentrant EnsimeEnvironment §s
+                # protection against reentrant EnsimeEnvironments
                 ensime_envs[window_key] = None
                 try:
                     ensime_envs[window_key] = EnsimeEnvironment(window)
@@ -121,16 +120,14 @@ class EnsimeEnvironment(object):
     def session_file(self):
         return (self.project_root + os.sep + ".ensime_session") if self.project_root else None
 
-    def create_logger(self, debug, cache_dir):
+    def create_logger(self, debug, log_file):
         import logging
         logger = logging.getLogger("ensime")
         file_log_formatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
         console_log_formatter = logging.Formatter("[Ensime] %(asctime)s [%(levelname)-5.5s]  %(message)s")
 
-        client_log_file = os.path.join(cache_dir, "ensime.log")
-
         logger.handlers.clear()
-        file_handler = logging.FileHandler(client_log_file)
+        file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(file_log_formatter)
         logger.addHandler(file_handler)
 
@@ -166,8 +163,11 @@ class EnsimeEnvironment(object):
 
         # ensure the cache_dir exists otherwise log initialisation will fail
         mkdir_p(self.cache_dir)
+
+        self.log_file = os.path.join(self.cache_dir, "ensime.log")
+
         if self.logger is None:
-            self.logger = self.create_logger(debug, self.cache_dir)
+            self.logger = self.create_logger(debug, self.log_file)
 
         # system stuff (mutable)
         self.session_id = uuid4()
