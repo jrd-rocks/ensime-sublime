@@ -30,7 +30,6 @@
                       { "caption": "Go to definition", "command": "ensime_go_to_definition" },
                       { "caption": "Add import", "command": "ensime_add_import" },
                       { "caption": "Organize imports", "command": "ensime_organize_imports"},
-                      { "caption": "Rename", "command": "ensime_rename"},
                       { "caption": "Inline Local", "command": "ensime_inline_local"},
                       { "caption": "Extract Local", "command": "ensime_extract_local"},
                       { "caption": "Rename", "command": "ensime_rename_refactoring"},
