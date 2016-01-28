@@ -1,11 +1,7 @@
 [
   {
-    "caption": "Ensime: Client Log",
-    "command": "ensime_show_client_log"
-  },
-  {
-    "caption": "Ensime: Server Log",
-    "command": "ensime_show_server_log"
+    "caption": "Ensime: Log",
+    "command": "ensime_show_log"
   },
   {
     "caption": "Ensime: Startup",
@@ -14,6 +10,10 @@
   {
     "caption": "Ensime: Restart",
     "command": "ensime_restart"
+  },
+  {
+    "caption": "Ensime: Shutdown",
+    "command": "ensime_shutdown"
   },
   {
     "caption": "Ensime: Project",
