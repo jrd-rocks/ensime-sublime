@@ -97,11 +97,10 @@ class CompletionInfo(ActiveRecord):
         self.name = m[":name"]
         self.signature = CompletionSignature.from_raw(m[":type-sig"])
         self.is_callable = bool(m[":is-callable"]) if ":is-callable" in m else False
-        self.type_id = m[":type-id"]
         self.to_insert = m[":to-insert"] if ":to-insert" in m else None
 
     def __repr__(self):
-        return 'CompletionInfo("{self.name}", "{self.signature}", {self.is_callable}, {self.type_id}, ...)'.format(
+        return 'CompletionInfo("{self.name}", "{self.signature}", {self.is_callable}, ...)'.format(
             self=self)
 
 
@@ -126,13 +125,11 @@ class SymbolInfo(ActiveRecord):
         self.type = TypeInfo.parse(m[":type"])
         self.decl_pos = SourcePosition.parse(m[":decl-pos"]) if ":decl-pos" in m else None
         self.is_callable = bool(m[":is-callable"]) if ":is-callable" in m else False
-        self.owner_type_id = m[":owner-type-id"] if ":owner-type-id" in m else None
 
 
 class TypeInfo(ActiveRecord):
     def populate(self, m):
         self.name = m[":name"]
-        self.type_id = m[":type-id"]
         is_arrow_type = bool(m[":arrow-type"]) if ":arrow-type" in m else False
         if is_arrow_type:
             self.arrow_type = True
@@ -145,7 +142,6 @@ class TypeInfo(ActiveRecord):
             self.decl_as = m[":decl-as"] if ":decl-as" in m else None
             self.decl_pos = SourcePosition.parse(m[":pos"]) if ":pos" in m else None
             self.type_args = TypeInfo.parse_list(m[":type-args"]) if ":type-args" in m else []
-            self.outer_type_id = m[":outer-type-id"] if ":outer-type-id" in m else None
             self.members = Member.parse_list(m[":members"]) if ":members" in m else []
 
 
