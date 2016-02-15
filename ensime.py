@@ -1627,22 +1627,21 @@ class EnsimeNewRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
 
     def refactor_successful(self, response):
         self.status_message("Refactoring with diff file: " + response.diff_file)
-        patch_cmd = "patch -d / -p1 -i " + response.diff_file
-        patch_run = os.popen(patch_cmd)
-        patch_lines = patch_run.readlines()
-        if patch_run.close():
-            self.logger.error("Patch refactoring failed")
-            self.logger.error("patch file: " + response.diff_file)
-            if len(patch_lines) > 0:
-                self.logger.error(patch_lines)
-                error = "Refactor failed: " + patch_lines[-1]
-            else:
-                error = "Refactor failed: " + response.diff_file
-            self.status_message(error)
-        else:
+        from .patch import fromfile
+        patch_set = fromfile(response.diff_file)
+        # print(patch_set.diffstat())
+        result = patch_set.apply(0, "/")
+        if result:
             self.reload_file()
             self.logger.info("Refactoring succeeded, patch file: " + response.diff_file)
             self.status_message("Refactoring succeeded")
+        else:
+            self.logger.error("Patch refactoring failed")
+            self.logger.error("patch file: " + response.diff_file)
+            error = "Refactor failed: " + response.diff_file
+            self.status_message(error)
+
+        self.logger.info("Refactoring succeeded, patch file: " + response.diff_file)
 
     def reload_file(self):
         view = self.v
