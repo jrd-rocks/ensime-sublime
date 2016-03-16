@@ -936,7 +936,7 @@ class Controller(EnsimeCommon, ClientListener, ServerListener):
             raise
 
     def on_server_data(self, data):
-        if not self.env.running and re.search("creating portfile.*http", data):
+        if not self.env.running and re.search("creating port file.*http", data):
             self.logger.info("SEEN port write")
             self.env.running = True
             sublime.set_timeout(self.ignition, 0)
