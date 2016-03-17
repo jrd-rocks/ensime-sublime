@@ -1595,54 +1595,79 @@ class EnsimeTypecheckFull(EnsimeTextCommand):
         self.status_message("Full type check completed")
 
 
-# common superclass to make refactoring definitions a little less boiler-platey
-class EnsimeRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
+# common superclass for new refactoring based on diffs
+class EnsimeNewRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
 
     def refactoring_symbol(self):
-        raise Exception("abstract method: EnsimeRefactoring.refactoring_symbol")
+        raise Exception("abstract method: EnsimeNewRefactoring.refactoring_symbol")
 
     def __nextRefactorId(self):
         return hash(uuid.uuid4())
 
     def run(self, edit, target=None):
+        self._temp_edit = edit
+        self._temp_target = target
         pos = int(target or self.v.sel()[0].begin())
         self._currentRefactorId = self.__nextRefactorId()
         if self.v.is_dirty():
             self.v.run_command('save')
         self.invoke_refactoring(pos)
 
-    def handle_refactor_prepare_response(self, response):
-        if response.done:
-            self.rpc.exec_refactor(self._currentRefactorId, sym(self.refactoring_symbol()),
-                                   self.handle_refactor_response)
-        elif response.reason.find("FreshRunReq") >= 0:
-            self.status_message("Refactor failed, please save file and try again")
+    def handle_refactor_response(self, response):
+        if response.succeeded:
+            self.refactor_successful(response)
         else:
-            self.status_message("Refactor failed: " + response.reason)
+            if response.try_refresh:
+                self.logger.info("Re-run requested")
+                self.run(self._temp_edit, self._temp_target)
+            else:
+                message = "Refactor failed: " + response.reason
+                self.logger.info(message)
+                self.status_message(message)
 
-    def handle_refactor_response(self, tpe):
+    def refactor_successful(self, response):
+        self.status_message("Refactoring with diff file: " + response.diff_file)
+        from .patch import fromfile
+        patch_set = fromfile(response.diff_file)
+        # print(patch_set.diffstat())
+        result = patch_set.apply(0, "/")
+        if result:
+            self.reload_file()
+            self.logger.info("Refactoring succeeded, patch file: " + response.diff_file)
+            self.status_message("Refactoring succeeded")
+        else:
+            self.logger.error("Patch refactoring failed")
+            self.logger.error("patch file: " + response.diff_file)
+            error = "Refactor failed: " + response.diff_file
+            self.status_message(error)
+
+        self.logger.info("Refactoring succeeded, patch file: " + response.diff_file)
+
+    def reload_file(self):
         view = self.v
         original_size = view.size()
         original_pos = view.sel()[0].begin()
         # Load changes
         view.run_command('revert')
-        # Wait until view loaded then move cursor to original position
-
+        # Wait until view loaded then move cursor to original position        
+      
         def on_load():
             if view.is_loading():
                 # Wait again
                 set_timeout(on_load, 50)
             else:
-                size_diff = view.size() - original_size
+                size_diff = view.size() - original_size 
                 new_pos = original_pos + size_diff
                 view.sel().clear()
                 view.sel().add(sublime.Region(new_pos))
                 view.show(new_pos)
-
+            self.v.sel().clear()
+        
         on_load()
 
 
-class EnsimeAddImport(EnsimeRefactoring):
+class EnsimeAddImport(EnsimeNewRefactoring):
+
     def refactoring_symbol(self):
         return 'addImport'
 
@@ -1660,38 +1685,36 @@ class EnsimeAddImport(EnsimeRefactoring):
 
         def do_refactor(i):
             if i > -1:
-                params = [sym('qualifiedName'), names[i], sym('file'), self.v.file_name(),
-                          sym('start'), 0, sym('end'), 0]
-                self.rpc.prepare_refactor(self._currentRefactorId, sym(self.refactoring_symbol()),
-                                          params, False, self.handle_refactor_prepare_response)
+                params = [sym('refactorType'), self.refactoring_symbol(), sym('qualifiedName'), names[i],
+                          sym('file'), self.v.file_name(), sym('start'), 0, sym('end'), 0]
+                self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
 
         self.v.window().show_quick_panel(names, do_refactor)
 
 
-class EnsimeOrganizeImports(EnsimeRefactoring):
+class EnsimeOrganizeImports(EnsimeNewRefactoring):
 
     def refactoring_symbol(self):
         return 'organizeImports'
 
     def invoke_refactoring(self, pos):
-        params = [sym('file'), self.v.file_name()]
-        self.rpc.prepare_refactor(self._currentRefactorId, sym(self.refactoring_symbol()), params, False,
-                                  self.handle_refactor_prepare_response)
+        params = [sym('refactorType'), self.refactoring_symbol(), sym('file'), self.v.file_name()]
+        self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
 
 
-class EnsimeInlineLocal(EnsimeRefactoring):
+class EnsimeInlineLocal(EnsimeNewRefactoring):
 
     def refactoring_symbol(self):
         return 'inlineLocal'
 
     def invoke_refactoring(self, pos):
         word = self.v.substr(self.v.word(pos))
-        params = [sym('file'), self.v.file_name(), sym('start'), pos, sym('end'), pos + len(word)]
-        self.rpc.prepare_refactor(self._currentRefactorId, sym(self.refactoring_symbol()), params,
-                                  False, self.handle_refactor_prepare_response)
+        params = [sym('refactorType'), self.refactoring_symbol(),
+                  sym('file'), self.v.file_name(), sym('start'), pos, sym('end'), pos + len(word)]
+        self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
 
 
-class EnsimeExtractRefactoring(EnsimeRefactoring):
+class EnsimeExtractRefactoring(EnsimeNewRefactoring):
 
     def invoke_refactoring(self, pos):
         regions = [r for r in self.v.sel()]
@@ -1708,10 +1731,11 @@ class EnsimeExtractRefactoring(EnsimeRefactoring):
             self.status_message('Select a single region to extract')
 
     def extract_it(self, arg):
-        params = [self.extract_sym(), arg, sym('file'), self.v.file_name(),
+        params = [sym('refactorType'), self.refactoring_symbol(),
+                  self.extract_sym(), arg, sym('file'), self.v.file_name(),
                   sym('start'), self.__region_begin, sym('end'), self.__region_end]
-        self.rpc.prepare_refactor(self._currentRefactorId, sym(self.refactoring_symbol()), params,
-                                  False, self.handle_refactor_prepare_response)
+        self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
+
 
 class EnsimeRenameRefactoring(EnsimeExtractRefactoring):
     def refactoring_symbol(self):
@@ -1722,6 +1746,7 @@ class EnsimeRenameRefactoring(EnsimeExtractRefactoring):
 
     def extract_sym(self):
         return sym('newName')
+
 
 class EnsimeExtractLocal(EnsimeExtractRefactoring):
     def refactoring_symbol(self):

@@ -169,16 +169,20 @@ class SymbolSearchResult(ActiveRecord):
         self.pos = SourcePosition.parse(m[":pos"]) if ":pos" in m else None
 
 
-class RefactorResult(ActiveRecord):
+# {':reason': 'scala.tools.nsc.interactive.FreshRunReq', ':procedure-id': -1642892474, ':status': failure}
+# {':procedure-id': -56441349, ':refactor-type': inlineLocal, ':diff': '/private/var/folders/3z/w744rp5x7ssgl_xrfgp2cqxhgzhwhl/T/ensime-diff-8187272601336300783.tmp'}
+class RefactorDiff(ActiveRecord):
     def populate(self, m):
-        self.status = str(m[":status"])
         self.procedure_id = m[":procedure-id"]
-        if self.status == "success":
-            self.done = True
-            pass
-        elif self.status == "failure":
-            self.done = False
+        if ":status" in m and ":reason" in m and m[":status"]:
+            self.succeeded = False
             self.reason = m[":reason"]
+            self.try_refresh = self.reason.find("FreshRunReq") > 0
+        else:
+            self.succeeded = True
+            self.try_refresh = False
+            self.refactor_type = m[":refactor-type"]
+            self.diff_file = m[":diff"]
 
 
 class Member(ActiveRecord):
@@ -517,12 +521,8 @@ class Rpc(object):
     def import_suggestions(self, file_name, position, type_names, max_results):
         pass
 
-    @async_rpc(RefactorResult.parse)
-    def prepare_refactor(self, procedure_id, refactor_type, parameters, require_confirmation):
-        pass
-
-    @async_rpc()
-    def exec_refactor(self, procedure_id, refactor_type):
+    @async_rpc(RefactorDiff.parse)
+    def diff_refactor(self, procedure_id, parameters, require_confirmation):
         pass
 
     @async_rpc()
