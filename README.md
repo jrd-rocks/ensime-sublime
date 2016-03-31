@@ -97,7 +97,7 @@ Sublime Text and ENSIME Sublime should now be correctly configured. The next ste
 ### Set up SBT
 
 1. Install the ENSIME SBT plugin by following the installation instructions
-   in the [ENSIME SBT README](https://github.com/ensime/ensime-sbt#install).
+   on the [ENSIME webpage](http://ensime.github.io/build_tools/sbt/).
 
    You can do this once per user by adding ENSIME SBT as a global plugin (recommended),
    or once per project by editing each project's `plugins.sbt` file individually.
