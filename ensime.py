@@ -1468,25 +1468,26 @@ class EnsimeHandleSymbolInfo(EnsimeCommon):
 class EnsimeInspectType:
     tuple_regex = re.compile("^Tuple\d+")
 
-    def format_param(self, param, begin, end, is_tooltip):
+    def trunc_name(self, name):
+        return name.split('[')[0]
+
+    def format_param(self, param, begin, end):
         res = "{0}: <a href={1}>{2}</a>".format(
             html.escape(param.param_name),
-            html.escape(param.param_type.full_name),
-            html.escape(param.param_type.name)
+            html.escape(self.trunc_name(param.param_type.full_name)),
+            html.escape(self.trunc_name(param.param_type.name))
         )
         if param.param_type.type_args:
-            res += begin + ", ".join([self.parse_tpe(t, is_tooltip) for t in param.param_type.type_args]) + end
+            res += begin + ", ".join([self.parse_tpe(t) for t in param.param_type.type_args]) + end
         return res
 
-    def format_param_list(self, param_section, begin, end, is_tooltip):
+    def format_param_list(self, param_section, begin, end):
         return "({0}{1})".format(
             "implicit " if param_section.is_implicit else "",
-            ", ".join([self.format_param(p, begin, end, is_tooltip) for p in param_section.params])
+            ", ".join([self.format_param(p, begin, end) for p in param_section.params])
         )
 
-    # is_tooltip param is a boolean which determines if either a status_message string
-    # or tooltip is generated
-    def parse_tpe(self, tpe, is_tooltip):
+    def parse_tpe(self, tpe):
         if tpe and tpe.name != "<notype>":
             if tpe.arrow_type:
                 param_sections = tpe.param_sections
@@ -1503,23 +1504,17 @@ class EnsimeInspectType:
             else:
                 begin, end = '[', ']'
                 full_name, name = type_info.full_name, type_info.name
-                if is_tooltip:
-                    # grab any type args from the description first
-                    type_args = "" if type_desc[0] != '[' else html.escape(type_desc[0:type_desc.find('](') + 1])
-                    param_section_list = "".join([self.format_param_list(ps, begin, end, is_tooltip)
-                                                  for ps in param_sections])
-                    res = "<a href={0}>{1}</a>".format(html.escape(full_name), html.escape(name))
-                    if param_section_list:
-                        res = "{0}{1}: {2}".format(type_args, param_section_list, res)
-                else:
-                    res = name
-                    last_paren = type_desc.rfind(')')
-                    type_desc_sans_return = type_desc[0:last_paren+1]
-                    if type_desc_sans_return:
-                        res = "{0}: {1}".format(type_desc_sans_return, res)
+
+                # grab any type args from the description first
+                type_args = "" if type_desc[0] != '[' else html.escape(type_desc[0:type_desc.find('](') + 1])
+                param_section_list = "".join([self.format_param_list(ps, begin, end)
+                                              for ps in param_sections])
+                res = "<a href={0}>{1}</a>".format(html.escape(self.trunc_name(full_name)), html.escape(self.trunc_name(name)))
+                if param_section_list:
+                    res = "{0}{1}: {2}".format(type_args, param_section_list, res)
 
             if type_info.type_args:
-                res += begin + ", ".join([self.parse_tpe(t, is_tooltip) for t in type_info.type_args]) + end
+                res += begin + ", ".join([self.parse_tpe(t) for t in type_info.type_args]) + end
 
             return res
 
@@ -1534,7 +1529,7 @@ class EnsimeInspectTypeAtPointTooltip(RunningProjectFileOnly, EnsimeTextCommand,
 
     def handle_reply(self, tpe):
         self.logger.info("EnsimeInspectTypeTooltip.handleReply: " + str(tpe))
-        markup = self.parse_tpe(tpe, is_tooltip=True)
+        markup = self.parse_tpe(tpe)
         if tpe:
             font_size = sublime.load_settings("Preferences.sublime-settings").get("font_size", 14)
             self.w.active_view().show_popup(
@@ -1550,15 +1545,14 @@ class EnsimeInspectTypeAtPointTooltip(RunningProjectFileOnly, EnsimeTextCommand,
         self.rpc.symbol_by_name(symbol, [], [], self.handle_symbol_info)
 
 
-class EnsimeInspectTypeAtPointStatus(RunningProjectFileOnly, EnsimeTextCommand, EnsimeHandleSymbolInfo,
-                                     EnsimeInspectType):
+class EnsimeInspectTypeAtPointStatus(RunningProjectFileOnly, EnsimeTextCommand, EnsimeHandleSymbolInfo):
     def run(self, edit, target=None):
         pos = int(target or self.v.sel()[0].begin())
         self.rpc.type_at_point(self.v.file_name(), pos, self.handle_reply)
 
     def handle_reply(self, tpe):
         self.logger.info("EnsimeInspectTypeStatus.handleReply: " + str(tpe))
-        msg = self.parse_tpe(tpe, is_tooltip=False)
+        msg = tpe.name
         if msg:
             self.status_message(msg)
         else:
