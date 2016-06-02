@@ -2303,7 +2303,9 @@ class WatchValueObjectNode(WatchValueReferenceNode):
 
 
 def create_watch_value_node(env, parent, label, value):
-    if str(value.type) == "null":
+    if (not value):
+        return WatchValueLeaf(env, parent, label, "Error obtaining value from ensime")
+    elif str(value.type) == "null":
         return WatchValueLeaf(env, parent, label, "null")
     elif str(value.type) == "prim":
         return WatchValueLeaf(env, parent, label, value.summary)
@@ -2339,12 +2341,14 @@ class WatchRoot(WatchNode):
                 value = self.rpc.debug_value(DebugLocationReference(self.env.stackframe.this_object_id))
                 yield create_watch_value_node(self.env, self, "this", value)
             for i, local in enumerate(self.env.stackframe.locals):
+                print ("stackframe: " + str(i) + " : " + str(local))
                 label = local.name
                 # TODO: this, along with other stuff in WatchValueNode, should really be asynchronous
                 # if you implement this, make sure to change correspond method signatures in rpc.py
                 # to say "@async_rpc" instead of "@sync_rpc"
                 value = self.rpc.debug_value(
                     DebugLocationSlot(self.env.backtrace.thread_id, self.env.stackframe.index, i))
+                #    DebugLocationField(self.env.stackframe.this_object_id, label))
                 yield create_watch_value_node(self.env, self, label, value)
 
 
