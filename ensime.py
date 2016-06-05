@@ -2341,7 +2341,6 @@ class WatchRoot(WatchNode):
                 value = self.rpc.debug_value(DebugLocationReference(self.env.stackframe.this_object_id))
                 yield create_watch_value_node(self.env, self, "this", value)
             for i, local in enumerate(self.env.stackframe.locals):
-                print ("stackframe: " + str(i) + " : " + str(local))
                 label = local.name
                 # TODO: this, along with other stuff in WatchValueNode, should really be asynchronous
                 # if you implement this, make sure to change correspond method signatures in rpc.py
@@ -2349,7 +2348,11 @@ class WatchRoot(WatchNode):
                 value = self.rpc.debug_value(
                     DebugLocationSlot(self.env.backtrace.thread_id, self.env.stackframe.index, i))
                 #    DebugLocationField(self.env.stackframe.this_object_id, label))
-                yield create_watch_value_node(self.env, self, label, value)
+                if not value: 
+                    desc = WatchValueLeaf(self.env, self, label, local.summary)
+                else:
+                    desc = create_watch_value_node(self.env, self, label, value)
+                yield desc
 
 
 class Watches(EnsimeToolView):
