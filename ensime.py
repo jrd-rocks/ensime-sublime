@@ -1643,20 +1643,19 @@ class EnsimeNewRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
         original_pos = view.sel()[0].begin()
         # Load changes
         view.run_command('revert')
-        # Wait until view loaded then move cursor to original position        
-      
+
+        # Wait until view loaded then move cursor to original position
         def on_load():
             if view.is_loading():
                 # Wait again
                 set_timeout(on_load, 50)
             else:
-                size_diff = view.size() - original_size 
+                size_diff = view.size() - original_size
                 new_pos = original_pos + size_diff
                 view.sel().clear()
                 view.sel().add(sublime.Region(new_pos))
                 view.show(new_pos)
-            self.v.sel().clear()
-        
+
         on_load()
 
 
