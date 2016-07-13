@@ -501,6 +501,10 @@ class Rpc(object):
     def type_at_point(self, file_name, position):
         pass
 
+    @sync_rpc()
+    def format_one_source(self, file):
+        pass
+
     @async_rpc(SymbolInfo.parse)
     def symbol_at_point(self, file_name, position):
         pass
