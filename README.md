@@ -72,6 +72,8 @@ Other keybindings can be enabled in the config:
 
 ## Troubleshooting
 
+Below are some helpful hints troubleshooting hints.  For more hints, checkout [the troubleshooting page](http://ensime.github.io/editors/sublime/troubleshooting/).
+
 ### Checking Java and SBT Visiblity
 
 Unsure whether Sublime Text can see Java and SBT on your system application path?
