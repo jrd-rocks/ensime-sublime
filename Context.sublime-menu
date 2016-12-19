@@ -33,6 +33,7 @@
               { "caption": "Extract Method", "command": "ensime_extract_method"},
               { "caption": "Rename", "command": "ensime_rename_refactoring"},
               { "caption": "Full Type Check", "command": "ensime_typecheck_full"},
+              { "caption": "Reformat This File", "command": "ensime_reformat_file"},
               { "caption": "Build", "command": "ensime_build" }
             ]
           },

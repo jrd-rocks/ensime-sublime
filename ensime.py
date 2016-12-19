@@ -791,7 +791,7 @@ class Server(ServerListener, EnsimeCommon):
         self.scala_version = self.config_map.get(":scala-version")
         self.java_home = self.config_map.get(":java-home")
         self.java_flags = self.config_map.get(":java-flags")
-        self.ensime_version = "0.9.10-SNAPSHOT"
+        self.ensime_version = "1.0.0"
         self.port_file = port_file
         self.proc = None
         self.classpath = None
@@ -1566,8 +1566,11 @@ class EnsimeBrowseScaladocAtPoint(RunningProjectFileOnly, EnsimeTextCommand):
 
     def handle_reply(self, uri):
         if uri:
-            self.logger.info("EnsimeBrowseScaladocAtPoint.handleReply: " + str(uri))
-            self.env.controller.client.open_uri(uri)
+            self.logger.info("EnsimeBrowseScaladocAtPoint.handle_reply: " + str(uri))
+            if uri.find("http") == 0:
+                webbrowser.open_new_tab(uri)
+            else:
+                self.env.controller.client.open_uri(uri)
         else:
             self.logger.info("Doc lookup failed")
             self.status_message("Doc lookup failed")
@@ -1683,6 +1686,13 @@ class EnsimeAddImport(EnsimeNewRefactoring):
                 self.rpc.diff_refactor(self._currentRefactorId, params, False, self.handle_refactor_response)
 
         self.v.window().show_quick_panel(names, do_refactor)
+
+
+class EnsimeReformatFile(EnsimeTextCommand):
+    
+    def run(self, edit, target=None):
+        response = self.rpc.format_one_source(SourceFileInfo(self.v.file_name()))
+        self.view.replace(edit, Region(0, self.view.size()), response)
 
 
 class EnsimeOrganizeImports(EnsimeNewRefactoring):
@@ -2216,7 +2226,7 @@ class WatchValueReferenceNode(WatchNode):
         if self.value.length != 0:
             result = self.env.rpc.debug_to_string(self.env.focus.thread_id,
                                                   DebugLocationReference(self.value.object_id))
-            result = result if result is not False and result is not None else "<failed to evaluate>"
+            result = result if result is not False and result is not None else "<failed to evaluate>: " + str(result)
             return result
         else:
             return "[]"
@@ -2302,7 +2312,9 @@ class WatchValueObjectNode(WatchValueReferenceNode):
 
 
 def create_watch_value_node(env, parent, label, value):
-    if str(value.type) == "null":
+    if (not value):
+        return WatchValueLeaf(env, parent, label, "Error obtaining value from ensime")
+    elif str(value.type) == "null":
         return WatchValueLeaf(env, parent, label, "null")
     elif str(value.type) == "prim":
         return WatchValueLeaf(env, parent, label, value.summary)
@@ -2344,7 +2356,12 @@ class WatchRoot(WatchNode):
                 # to say "@async_rpc" instead of "@sync_rpc"
                 value = self.rpc.debug_value(
                     DebugLocationSlot(self.env.backtrace.thread_id, self.env.stackframe.index, i))
-                yield create_watch_value_node(self.env, self, label, value)
+                #    DebugLocationField(self.env.stackframe.this_object_id, label))
+                if not value: 
+                    desc = WatchValueLeaf(self.env, self, label, local.summary)
+                else:
+                    desc = create_watch_value_node(self.env, self, label, value)
+                yield desc
 
 
 class Watches(EnsimeToolView):
