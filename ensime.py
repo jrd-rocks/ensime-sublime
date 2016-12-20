@@ -1372,7 +1372,7 @@ class Notes(EnsimeToolView):
 class EnsimeHandleSymbolInfo(EnsimeCommon):
     def handle_symbol_info(self, info):
         if not self.handle_symbol_info_inner(info):
-            #retry once
+            # retry once
             self.status_message("Please wait, trying harder to locate " + (str(info.name) if info else "symbol"))
             self.rpc.typecheck_all(self.typecheck_all_finished)
             pos = int(self.v.sel()[0].begin())
@@ -1386,6 +1386,7 @@ class EnsimeHandleSymbolInfo(EnsimeCommon):
             self.v.run_command("goto_definition")
 
     def handle_symbol_info_inner(self, info):
+        print("Moving to " + str(info.decl_pos))
         if info and info.decl_pos:
             # fails from time to time, because sometimes self.w is None
             # v = self.w.open_file(info.decl_pos.file_name)
@@ -1509,7 +1510,9 @@ class EnsimeInspectType:
                 type_args = "" if type_desc[0] != '[' else html.escape(type_desc[0:type_desc.find('](') + 1])
                 param_section_list = "".join([self.format_param_list(ps, begin, end)
                                               for ps in param_sections])
-                res = "<a href={0}>{1}</a>".format(html.escape(self.trunc_name(full_name)), html.escape(self.trunc_name(name)))
+                res = "<a href={0}>{1}</a>".format(
+                    html.escape(self.trunc_name(full_name)), html.escape(self.trunc_name(name))
+                )
                 if param_section_list:
                     res = "{0}{1}: {2}".format(type_args, param_section_list, res)
 
@@ -1576,8 +1579,8 @@ class EnsimeBrowseScaladocAtPoint(RunningProjectFileOnly, EnsimeTextCommand):
             self.status_message("Doc lookup failed")
 
 
-
 class EnsimeGoToDefinition(RunningProjectFileOnly, EnsimeTextCommand, EnsimeHandleSymbolInfo):
+
     def run(self, edit, target=None):
         pos = int(target or self.v.sel()[0].begin())
         self.rpc.symbol_at_point(self.v.file_name(), pos, self.handle_symbol_info)
@@ -1658,6 +1661,7 @@ class EnsimeNewRefactoring(RunningProjectFileOnly, EnsimeTextCommand):
                 view.sel().clear()
                 view.sel().add(sublime.Region(new_pos))
                 view.show(new_pos)
+            self.v.sel().clear()
 
         on_load()
 
@@ -1688,8 +1692,29 @@ class EnsimeAddImport(EnsimeNewRefactoring):
         self.v.window().show_quick_panel(names, do_refactor)
 
 
+class EnsimeClasspathSearch(RunningProjectFileOnly, EnsimeTextCommand, EnsimeHandleSymbolInfo):
+
+    def run(self, edit, target=None):
+        self.w.show_input_panel("Classpath Search:", '',
+                                self.classpath_search, None, None)
+
+    def classpath_search(self, word):
+        if len(word.strip()) > 0:
+            self.rpc.public_symbol_search([word], 30, self.classpath_search_results)
+
+    def classpath_search_results(self, info):
+        for a in info:
+            print(a)
+        names = [a.name for a in info]
+
+        def do_select(i):
+            self.handle_symbol_info(info[i])
+
+        self.v.window().show_quick_panel(names, do_select)
+
+
 class EnsimeReformatFile(EnsimeTextCommand):
-    
+
     def run(self, edit, target=None):
         response = self.rpc.format_one_source(SourceFileInfo(self.v.file_name()))
         self.view.replace(edit, Region(0, self.view.size()), response)

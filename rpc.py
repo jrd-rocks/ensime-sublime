@@ -169,6 +169,12 @@ class SymbolSearchResult(ActiveRecord):
         self.pos = SourcePosition.parse(m[":pos"]) if ":pos" in m else None
 
 
+class TypeSearchResult(ActiveRecord):
+    def populate(self, m):
+        self.name = m[":name"]
+        self.decl_pos = SourcePosition.parse(m[":pos"]) if ":pos" in m else None
+
+
 # {':reason': 'scala.tools.nsc.interactive.FreshRunReq', ':procedure-id': -1642892474, ':status': failure}
 # {':procedure-id': -56441349, ':refactor-type': inlineLocal, ':diff': '/private/var/folders/3z/w744rp5x7ssgl_xrfgp2cqxhgzhwhl/T/ensime-diff-8187272601336300783.tmp'}
 class RefactorDiff(ActiveRecord):
@@ -523,6 +529,10 @@ class Rpc(object):
 
     @async_rpc(SymbolSearchResults.parse_list)
     def import_suggestions(self, file_name, position, type_names, max_results):
+        pass
+
+    @async_rpc(TypeSearchResult.parse_list)
+    def public_symbol_search(self, type_names, max_results):
         pass
 
     @async_rpc(RefactorDiff.parse)
