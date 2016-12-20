@@ -56,6 +56,10 @@
     "command": "ensime_show_notes"
   },
   {
+    "caption": "Ensime: Classpath Search",
+    "command": "ensime_classpath_search"
+  },
+  {
     "caption": "Ensime: Inspect Type at Point",
     "command": "ensime_inspect_type_at_point"
   },
