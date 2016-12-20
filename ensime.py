@@ -791,7 +791,7 @@ class Server(ServerListener, EnsimeCommon):
         self.scala_version = self.config_map.get(":scala-version")
         self.java_home = self.config_map.get(":java-home")
         self.java_flags = self.config_map.get(":java-flags")
-        self.ensime_version = "1.0.0"
+        self.ensime_version = "2.0.0-SNAPSHOT"
         self.port_file = port_file
         self.proc = None
         self.classpath = None
@@ -1711,13 +1711,6 @@ class EnsimeClasspathSearch(RunningProjectFileOnly, EnsimeTextCommand, EnsimeHan
             self.handle_symbol_info(info[i])
 
         self.v.window().show_quick_panel(names, do_select)
-
-
-class EnsimeReformatFile(EnsimeTextCommand):
-
-    def run(self, edit, target=None):
-        response = self.rpc.format_one_source(SourceFileInfo(self.v.file_name()))
-        self.view.replace(edit, Region(0, self.view.size()), response)
 
 
 class EnsimeOrganizeImports(EnsimeNewRefactoring):

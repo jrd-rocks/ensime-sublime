@@ -78,14 +78,21 @@ class CompletionSignature(ActiveRecord):
     def from_raw(cls, data):
         # this hacky is all because () in both false and and empty list
         # the parser cannot tell, so hack it until we move to jerk
-        sections_raw = data[0] if(data[0] is not False) else []
         sections = []
-        for s in sections_raw:
-            if not s:
-                sections.append([])
-            else:
-                sections.append(s)
-        result = data[1]
+        result = ""
+        try:  # Does this have parameters? Ask forgiveness...
+            sections_raw = data[9]
+            for s in sections_raw:
+                if not s:
+                    sections.append([])
+                else:
+                    param_pairs = [[x[0], x[1][3]] for x in s[1]]
+                    sections.append(param_pairs)
+            result = data[7][3]
+        except:
+            # import spdb; spdb.start()
+            result = data[3]
+        
         return CompletionSignature(sections, result)
 
     def __repr__(self):
@@ -95,8 +102,9 @@ class CompletionSignature(ActiveRecord):
 class CompletionInfo(ActiveRecord):
     def populate(self, m):
         self.name = m[":name"]
-        self.signature = CompletionSignature.from_raw(m[":type-sig"])
-        self.is_callable = bool(m[":is-callable"]) if ":is-callable" in m else False
+        type_info = m[":type-info"]
+        self.signature = CompletionSignature.from_raw(type_info)
+        self.is_callable = type_info[1]
         self.to_insert = m[":to-insert"] if ":to-insert" in m else None
 
     def __repr__(self):
@@ -505,10 +513,6 @@ class Rpc(object):
 
     @async_rpc(TypeInfo.parse)
     def type_at_point(self, file_name, position):
-        pass
-
-    @sync_rpc()
-    def format_one_source(self, file):
         pass
 
     @async_rpc(SymbolInfo.parse)
