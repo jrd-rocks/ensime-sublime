@@ -5,6 +5,7 @@ from functools import partial as bind
 from . import sexp
 from .sexp import key, sym
 import collections
+import spdb
 
 # ############################# DATA STRUCTURES ##############################
 
@@ -79,20 +80,20 @@ class CompletionSignature(ActiveRecord):
         # this hacky is all because () in both false and and empty list
         # the parser cannot tell, so hack it until we move to jerk
         sections = []
-        result = ""
-        try:  # Does this have parameters? Ask forgiveness...
-            sections_raw = data[9]
+        data_dict = sexp.sexp_to_key_map(data)
+        if ':param-sections' in data_dict:
+            sections_raw = data_dict[':param-sections']
             for s in sections_raw:
-                if not s:
+                if not s:  # no params in this section
                     sections.append([])
                 else:
-                    param_pairs = [[x[0], x[1][3]] for x in s[1]]
+                    param_list = s[1]
+                    param_pairs = [[p[0], p[1][3]] for p in param_list]
                     sections.append(param_pairs)
-            result = data[7][3]
-        except:
-            # import spdb; spdb.start()
-            result = data[3]
-        
+            result = data_dict[':result-type'][3]
+        else:
+            result = data_dict[':name']
+
         return CompletionSignature(sections, result)
 
     def __repr__(self):

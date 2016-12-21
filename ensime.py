@@ -1473,13 +1473,19 @@ class EnsimeInspectType:
         return name.split('[')[0]
 
     def format_param(self, param, begin, end):
-        res = "{0}: <a href={1}>{2}</a>".format(
-            html.escape(param.param_name),
-            html.escape(self.trunc_name(param.param_type.full_name)),
-            html.escape(self.trunc_name(param.param_type.name))
-        )
-        if param.param_type.type_args:
-            res += begin + ", ".join([self.parse_tpe(t) for t in param.param_type.type_args]) + end
+        try:
+            res = "{0}: <a href={1}>{2}</a>".format(
+                html.escape(param.param_name),
+                html.escape(self.trunc_name(param.param_type.full_name)),
+                html.escape(self.trunc_name(param.param_type.name))
+            )
+        except:
+            res = self.trunc_name(param.param_type.name)
+        try:
+            if param.param_type.type_args:
+                res += begin + ", ".join([self.parse_tpe(t) for t in param.param_type.type_args]) + end
+        except:
+            pass
         return res
 
     def format_param_list(self, param_section, begin, end):
@@ -1509,7 +1515,7 @@ class EnsimeInspectType:
                 # grab any type args from the description first
                 type_args = "" if type_desc[0] != '[' else html.escape(type_desc[0:type_desc.find('](') + 1])
                 param_section_list = "".join([self.format_param_list(ps, begin, end)
-                                              for ps in param_sections])
+                                              for ps in param_sections if ps])
                 res = "<a href={0}>{1}</a>".format(
                     html.escape(self.trunc_name(full_name)), html.escape(self.trunc_name(name))
                 )
