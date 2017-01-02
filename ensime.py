@@ -29,6 +29,8 @@ from .rpc import *
 from .sbt import *
 from .strings import *
 
+ENSIME_COMPLETIONS = None
+
 
 class EnsimeCommon(object):
     def __init__(self, owner):
@@ -1195,7 +1197,19 @@ class Colorer(EnsimeCommon):
                 self.env.settings.get("stackfocus_icon"))
 
 
-class Completer(EnsimeEventListener):
+class TheCompleter(object):
+
+    def __init__(self):
+        print("********** NEW MAIN COMPLETER")
+        self._started = False
+        self._completed = False
+        self._triggered = False
+        self._completions = None
+        self._env = None
+        self._rpc = None
+        self._view = None
+        self._WLOCK = threading.RLock()
+
     def _signature_doc(self, sig):
         """Given a ensime CompletionSignature structure, returns a short
         string suitable for showing in the help section of the completion
@@ -1231,34 +1245,79 @@ class Completer(EnsimeEventListener):
                 sublime.INHIBIT_EXPLICIT_COMPLETIONS |
                 sublime.INHIBIT_WORD_COMPLETIONS)
 
-    def _query_completions(self, prefix, locations):
+    def ensime_query_completions(self, prefix, locations, env, rpc, view):
         """Query the ensime API for completions. Note: we must ask for _all_
         completions as sublime will not re-query unless this query returns an
         empty list."""
         # Short circuit for prefix that is known to return empty list
         # TODO(aemoncannon): Clear ignore prefix if the user
         # moves point to new context.
-        if (self.env.completion_ignore_prefix and
-                prefix.startswith(self.env.completion_ignore_prefix)):
-            return self._completion_response(CompletionInfoList.create(prefix, []))
-        else:
-            self.env.completion_ignore_prefix = None
+        with self._WLOCK:
+            print("*** Completed: ", self._completed)
+            if self._completed:
+                self._triggered = False
+                self._completed = False
 
-        if self.v.is_dirty():
-            source_file_info = SourceFileInfo(self.v.file_name(), self.v.substr(Region(0, self.v.size())))
-        else:
-            source_file_info = SourceFileInfo(self.v.file_name())
+                return self._completions
 
-        completions = self.rpc.completions(source_file_info, locations[0], 100, False, False)
-        if not completions:
-            self.env.completion_ignore_prefix = prefix
-            return self._completion_response(CompletionInfoList.create(prefix, []))
-        else:
-            return self._completion_response(completions)
+            else:
+                print("Starting completion request", time.time())
+                self._triggered = True
+                self._env = env
+                self._rpc = rpc
+                self._v = view
+
+                if not self._started:
+                    self._started = True
+                    if (self._env.completion_ignore_prefix and
+                            prefix.startswith(self._env.completion_ignore_prefix)):
+                        return self._completion_response(CompletionInfoList.create(prefix, []))
+                    else:
+                        self._env.completion_ignore_prefix = None
+
+                    if self._v.is_dirty():
+                        contents = self._v.substr(Region(0, self._v.size()))
+                        source_file_info = SourceFileInfo(self._v.file_name(), contents)
+                    else:
+                        source_file_info = SourceFileInfo(self._v.file_name())
+
+                    self._rpc.completions(source_file_info, locations[0], 60, False, False,
+                                          self.handle_query_completions)
+                    sublime.active_window().run_command("hide_auto_complete")
+
+                print("Returning empty for now ", time.time())
+                return self._completion_response(CompletionInfoList.create(prefix, []))
+
+    # hack to display the autocompletions once they are available
+    def _request_completions_again(self):
+        def req_completions_2():
+            sublime.active_window().active_view().run_command("auto_complete")
+            pass
+        sublime.set_timeout(req_completions_2, 1)
+
+    def handle_query_completions(self, completions):
+        with self._WLOCK:
+            self._completed = True
+            self._started = False
+
+            if not completions:
+                self.env.completion_ignore_prefix = prefix
+                self._completions = self._completion_response(CompletionInfoList.create(prefix, []))
+            else:
+                self._completions = self._completion_response(completions)
+
+            # if the user has tried to summon autocompletions, reload
+            # now that we have some
+            if self._triggered and len(self._completions) > 0:
+                sublime.set_timeout(self._request_completions_again, 0)
+
+
+class Completer(EnsimeEventListener):
 
     def on_query_completions(self, prefix, locations):
         if self.env.running and self.in_project():
-            return self._query_completions(prefix, locations)
+            the_completer = get_the_completer()
+            return the_completer.ensime_query_completions(prefix, locations, self.env, self.rpc, self.v)
         else:
             return []
 
@@ -2434,3 +2493,13 @@ class Watches(EnsimeToolView):
 
     def clear_sel(self):
         self.v.sel().clear()
+
+
+def plugin_loaded():
+    global ENSIME_COMPLETIONS
+    if ENSIME_COMPLETIONS is None:
+        ENSIME_COMPLETIONS = TheCompleter()
+
+def get_the_completer():
+    plugin_loaded()
+    return ENSIME_COMPLETIONS

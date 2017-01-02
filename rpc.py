@@ -103,9 +103,15 @@ class CompletionSignature(ActiveRecord):
 class CompletionInfo(ActiveRecord):
     def populate(self, m):
         self.name = m[":name"]
-        type_info = m[":type-info"]
-        self.signature = CompletionSignature.from_raw(type_info)
-        self.is_callable = type_info[1]
+        self.is_callable = False
+        try:
+            type_info = m[":type-info"]
+            self.signature = CompletionSignature.from_raw(type_info)
+            self.is_callable = type_info[1]
+        except:
+            self.signature = CompletionSignature([], "Nothing")
+            self.to_insert = None
+
         self.to_insert = m[":to-insert"] if ":to-insert" in m else None
 
     def __repr__(self):
@@ -508,7 +514,7 @@ class Rpc(object):
     def patch_source(self, file_name, edits):
         pass
 
-    @sync_rpc(CompletionInfoList.parse)
+    @async_rpc(CompletionInfoList.parse)
     def completions(self, file_name, position, max_results, case_sensitive, reload_from_disk):
         pass
 
