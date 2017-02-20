@@ -1084,7 +1084,10 @@ class Colorer(EnsimeCommon):
             if self.v.sel():
                 relevant_notes = self.env.notes_storage.for_file(self.v.file_name())
                 bol = self.v.line(self.v.sel()[0].begin()).begin()
-                eol = self.v.line(self.v.sel()[0].begin()).end()
+                try:
+                    eol = self.v.line(self.v.sel()[0].begin()).end()
+                except:
+                    eol = bol
                 msgs = [note.message for note in relevant_notes
                         if (bol <= note.start <= eol) or (bol <= note.end <= eol)]
                 self._update_statusbar("; ".join(msgs))
@@ -1281,7 +1284,7 @@ class TheCompleter(object):
                     else:
                         source_file_info = SourceFileInfo(self._v.file_name())
 
-                    self._rpc.completions(source_file_info, locations[0], 60, False, False,
+                    self._rpc.completions(source_file_info, locations[0], 100, False, False,
                                           self.handle_query_completions)
                     sublime.active_window().run_command("hide_auto_complete")
 
@@ -2440,7 +2443,7 @@ class WatchRoot(WatchNode):
                 value = self.rpc.debug_value(
                     DebugLocationSlot(self.env.backtrace.thread_id, self.env.stackframe.index, i))
                 #    DebugLocationField(self.env.stackframe.this_object_id, label))
-                if not value: 
+                if not value:
                     desc = WatchValueLeaf(self.env, self, label, local.summary)
                 else:
                     desc = create_watch_value_node(self.env, self, label, value)

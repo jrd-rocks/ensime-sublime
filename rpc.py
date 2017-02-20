@@ -61,7 +61,10 @@ class CompletionInfoList(ActiveRecord):
 
     def populate(self, m):
         self.prefix = m[":prefix"]
-        self.completions = CompletionInfo.parse_list(m[":completions"])
+        try:
+            self.completions = CompletionInfo.parse_list(m[":completions"])
+        except:
+            self.completions = []
 
 
 class CompletionSignature(ActiveRecord):
