@@ -1,6 +1,3 @@
-from functools import partial as bind
-
-
 class RpcRequest(object):
     def run(self, client_self):
             raise NotImplementedError
