@@ -11,6 +11,7 @@ import websocket
 from .protocol import ProtocolHandler
 from .util import catch
 from .errors import LaunchError
+from .outgoing import ConnectionInfoRequest
 
 # Queue depends on python version
 if sys.version_info > (3, 0):
@@ -178,7 +179,8 @@ class EnsimeClient(ProtocolHandler):
                                  self.ensime_server, options)
                 self.ws = websocket.create_connection(self.ensime_server, **options)
             if self.ws:
-                self.send_request({"typehint": "ConnectionInfoReq"})
+                # self.send_request({"typehint": "ConnectionInfoReq"})
+                ConnectionInfoRequest().run(self)
             return True
         else:
             # If it hits this, number_try_connection is 0

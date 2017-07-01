@@ -3,6 +3,7 @@ import sublime
 import os
 import threading
 import logging
+from logging.handlers import WatchedFileHandler
 import uuid
 
 from . import dotensime, sexp
@@ -64,7 +65,7 @@ class _EnsimeEnvironment(object):
         console_log_formatter = logging.Formatter("[Ensime] %(asctime)s [%(levelname)-5.5s]  %(message)s")
 
         logger.handlers.clear()
-        file_handler = logging.FileHandler(log_file)
+        file_handler = WatchedFileHandler(log_file)
         file_handler.setFormatter(file_log_formatter)
         logger.addHandler(file_handler)
 
