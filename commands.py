@@ -1,11 +1,10 @@
-import sublime
-
 import sys
+import sublime_plugin
 
-from .ensimesublime.core import EnsimeWindowCommand
+from .ensimesublime.core import EnsimeWindowCommand, EnsimeCommon
 from .ensimesublime.launcher import EnsimeLauncher
 from .ensimesublime.client import EnsimeClient
-from .ensimesublime.env import getOrCreateNew
+from .ensimesublime.outgoing import TypeCheckFileReq
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -18,8 +17,8 @@ class EnsimeStartup(EnsimeWindowCommand):
             self.env.recalc()
         except Exception:
             typ, value, traceback = sys.exc_info()
-            sublime.error_message("Got an error :\n{t} : {val}"
-                                  .format(t=typ, val=str(value).split(".")[-1]))
+            self.error_message("Got an error :\n{t} : {val}"
+                               .format(t=typ, val=str(value).split(".")[-1]))
         else:
             l = EnsimeLauncher(self.env.config)
             self.env.client = EnsimeClient(self.env.logger, l, self.env.connection_timeout)
@@ -32,3 +31,15 @@ class EnsimeShutdown(EnsimeWindowCommand):
 
     def run(self):
         self.env.client.teardown()
+
+
+class EnsimeEventListener(EnsimeCommon, sublime_plugin.EventListener):
+    def on_load(self, view):
+        if self.is_running() and self.in_project():
+            TypeCheckFileReq(view.file_name()).run(self.env.client)
+
+    def on_post_save(self, view):
+        pass
+
+    def on_activated(self, view):
+        pass
