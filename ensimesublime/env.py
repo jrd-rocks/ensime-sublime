@@ -9,7 +9,7 @@ from . import dotensime
 from .util import Util
 from .notes import NotesStorage
 from .editor import Editor
-from .config import LOG_FORMAT
+from .config import LOG_FORMAT, EnsimeProjectId
 
 env_lock = threading.RLock()
 # dictionary from window to it's EnsimeEnvironment
@@ -28,7 +28,8 @@ def getEnvironment(window):
                 env = env_for_key
         return env
     else:
-        print("You must supply a window for which the ensime environment is required.")
+        # Get here when the view is showing a file in a hidden directory (like .ensime_cache/)
+        print("You are in a hidden directory.(like .ensime_cache/)")
         return None
 
 
@@ -117,9 +118,17 @@ class _EnsimeEnvironment(object):
         self.project_root = self.config['root-dir']
         self.valid = self.config is not None
         self.cache_dir = self.config['cache-dir']
+        # done for smarter notes storage
+        id2project = {EnsimeProjectId(p['id']): p for p in self.config['projects']}
+        sources_to_project = {s: ([p['id']] + p['depends']) for p in self.config['projects'] for s in p['sources']}
+        self.grouped_srcs = {}
+        for key, val in sources_to_project:
+            srcs_list = []
+            for p_id in val:
+                srcs_list = srcs_list + id2project[EnsimeProjectId(p_id)]['sources']
+            self.grouped_srcs[key] = srcs_list
         # ensure the cache_dir exists otherwise log initialisation will fail
         Util.mkdir_p(self.cache_dir)
-
         self.log_file = os.path.join(self.cache_dir, "ensime.log")
         if self.logger is None:
             self.logger = self.create_logger(debug, self.log_file)

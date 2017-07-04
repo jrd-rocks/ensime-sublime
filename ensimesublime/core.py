@@ -13,7 +13,7 @@ class EnsimeCommon(object):
             self.w = owner
             self.v = None
         elif type(owner) == sublime.View:
-            # owner.window() is sometimes None ??
+            # owner.window() is sometimes None because view open is in a hidden directory
             self.w = owner.window() or sublime.active_window()
             self.v = owner
         else:
@@ -62,15 +62,3 @@ class EnsimeWindowCommand(EnsimeCommon, sublime_plugin.WindowCommand):
 class EnsimeTextCommand(EnsimeCommon, sublime_plugin.TextCommand):
     def __init__(self, owner):
         pass
-
-
-# class EnsimeEventListener(sublime_plugin.EventListener):
-#     def on_load(self, view):
-#         if self.is_running() and self.in_project():
-#             TypeCheckFileReq(view.file_name()).run(self.env.client)
-
-#     def on_post_save(self, view):
-#         pass
-
-#     def on_activated(self, view):
-#         pass

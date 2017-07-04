@@ -36,7 +36,7 @@ class EnsimeShutdown(EnsimeWindowCommand):
 
 
 class EnsimeEventListener(sublime_plugin.EventListener):
-    def on_load_async(self, view):
+    def on_load(self, view):
         env = getEnvironment(view.window())
         if env:
             if env.is_connected():

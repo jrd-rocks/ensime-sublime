@@ -1,7 +1,6 @@
 from .paths import normalize_path
 
 
-# Make it smarter
 class Note(object):
     def __init__(self, m):
         self.message = m['msg']
@@ -13,6 +12,7 @@ class Note(object):
         self.col = m['col']
 
 
+# Make it smarter
 class NotesStorage(object):
     def __init__(self):
         self.normalized_cache = {}

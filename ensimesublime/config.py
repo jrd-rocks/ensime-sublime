@@ -2,6 +2,8 @@
 
 import collections
 import os
+import operator
+import functools
 
 import sexpdata
 
@@ -36,6 +38,22 @@ feedback = {
     "typechecking": "Typechecking...",
     "unknown_symbol": "Symbol not found",
 }
+
+
+class EnsimeProjectId(object):
+    def __init__(self, p_id):
+        self.project = p_id['project']
+        self.config = p_id['config']
+
+    def __hash__(self):
+        return hash(self.project) ^ hash(self.config)
+
+    def __eq__(self, that):
+        return self.project == that.project and self.config == that.config
+
+    def __repr__(self):
+        return ("EnsimeProjectId({project}, {config})"
+                .format(project=self.project, config=self.config))
 
 
 class ProjectConfig(collections.Mapping):
