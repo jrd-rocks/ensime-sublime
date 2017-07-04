@@ -1,8 +1,8 @@
 import os
 import errno
 
-from . import paths, sexp
 from .errors import DotEnsimeNotFound, BadEnsimeConfig
+from .config import ProjectConfig
 
 
 def _locations(window):
@@ -17,17 +17,9 @@ def load(window):
     Return: (inferred project root directory, config sexp)
     """
     for f in _locations(window):
-        root = paths.encode_path(os.path.dirname(f))
-        with open(f) as open_file:
-            src = open_file.read()
         try:
-            conf = sexp.read_relaxed(src)
-            m = sexp.sexp_to_key_map(conf)
-            if m.get(":root-dir"):
-                root = m[":root-dir"]
-            else:
-                conf = conf + [sexp.key(":root-dir"), root]
-            return (root, conf)
+            conf = ProjectConfig(f)
+            return conf
         except Exception:
             exc_type, exc_val, _ = os.sys.exc_info()
             raise BadEnsimeConfig("""Ensime has failed to parse the .ensime configuration file at

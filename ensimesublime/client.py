@@ -63,7 +63,9 @@ class EnsimeClient(ProtocolHandler):
 
     def queue_poll(self, sleep_t=0.5):
         """Put new messages in the map as they arrive.
-        Since putting a value in a map is an atomic operation.
+        Since putting a value in a map is an atomic operation,
+        existence of a certain key and retrieval can be done
+        from a separate thread by the client.
         Value of sleep is low to improve responsiveness.
         """
         while self.running:
@@ -92,9 +94,10 @@ class EnsimeClient(ProtocolHandler):
             time.sleep(sleep_t)
 
     def connect_when_ready(self, timeout, fallback):
-        """Given a maximum timeout, waits for the http port to be
-        written.
+        """Given a maximum timeout, waits for the http port to be written.
         Tries to connect to the websocket if it's written.
+        If it fails cleans up by calling fallback. Ideally, should stop ensime
+        process if connection wasn't established.
         """
         if not self.ws:
             while not self.ensime.is_ready() and (timeout > 0):
@@ -112,7 +115,8 @@ class EnsimeClient(ProtocolHandler):
             self.env.logger.info("Already connected.")
 
     def setup(self):
-        """Check the classpath and connect to the server if necessary."""
+        """Setup the client. Starts the enisme process using launcher
+        and connects to it through websocket"""
         def initialize_ensime():
             if not self.ensime:
                 self.env.logger.info("----Initialising server----")
@@ -152,7 +156,9 @@ class EnsimeClient(ProtocolHandler):
                 self.ws.send(msg + "\n")
 
     def connect_ensime_server(self):
-        """Start initial connection with the server."""
+        """Start initial connection with the server.
+        Return True if the connection info is received
+        else returns False"""
         self.env.logger.debug('connect_ensime_server: in')
 
         def disable_completely(e):
@@ -184,7 +190,8 @@ class EnsimeClient(ProtocolHandler):
         return False
 
     def shutdown_server(self):
-        """Shut down server if it is running.
+        """Shut down the ensime process if it is running and
+        uncolorizes the open views in the editor.
         Does not change the client's running status."""
         self.env.logger.debug('shutdown_server: in')
         self.connected = False
@@ -193,7 +200,8 @@ class EnsimeClient(ProtocolHandler):
         self.env.editor.uncolorize_all()
 
     def teardown(self):
-        """Shutdown down the client. Stop the server if connected."""
+        """Shutdown down the client. Stop the server if connected.
+        This stops the loop receiving responses from the websocket."""
         self.env.logger.debug('teardown: in')
         self.running = False
         self.shutdown_server()
@@ -211,9 +219,12 @@ class EnsimeClient(ProtocolHandler):
         return call_id
 
     def get_response(self, call_id, timeout=10, should_wait=True):
+        """Gets a response with the specified call_id.
+        If should_wait is set to true waits for the response to appear
+        in the `responses` map for time specified by timeout.
+        Returns True or False based on wether a response for that call_id was found."""
         start, now = time.time(), time.time()
         wait = should_wait and call_id not in self.responses
-        print("looking for key = {k}".format(k=repr(call_id)))
         while wait and (now - start) < timeout:
             if call_id not in self.responses:
                 time.sleep(0.25)

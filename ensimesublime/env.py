@@ -5,7 +5,7 @@ import threading
 import logging
 from logging.handlers import WatchedFileHandler
 
-from . import dotensime, sexp
+from . import dotensime
 from .util import Util
 from .notes import NotesStorage
 from .editor import Editor
@@ -113,11 +113,12 @@ class _EnsimeEnvironment(object):
         self.settings = sublime.load_settings("Ensime.sublime-settings")
         debug = self.settings.get("debug", False)
         # instance-specific stuff (immutable)
-        (root, conf) = dotensime.load(self.window)
-        self.project_root = root
-        self.config = sexp.sexp_to_key_map(conf)
+        self.config = dotensime.load(self.window)
+        self.project_root = self.config['root-dir']
         self.valid = self.config is not None
-        self.cache_dir = self.config.get("cache-dir")
+        if self.valid:
+            print(self.config)
+        self.cache_dir = self.config['cache-dir']
         # ensure the cache_dir exists otherwise log initialisation will fail
         Util.mkdir_p(self.cache_dir)
 

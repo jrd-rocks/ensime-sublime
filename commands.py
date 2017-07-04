@@ -19,8 +19,8 @@ class EnsimeStartup(EnsimeWindowCommand):
             self.env.recalc()
         except Exception:
             typ, value, traceback = sys.exc_info()
-            self.error_message("Got an error :\n{t} : {val}"
-                               .format(t=typ, val=str(value).split(".")[-1]))
+            self.error_message("Got an error :\n{t} : {val}\n{trace}"
+                               .format(t=typ, val=str(value).split(".")[-1], trace=traceback))
         else:
             launcher = EnsimeLauncher(self.env.config)
             self.env.client = EnsimeClient(self.env, launcher)
