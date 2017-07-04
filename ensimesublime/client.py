@@ -11,6 +11,7 @@ from .protocol import ProtocolHandler
 from .util import catch
 from .errors import LaunchError
 from .outgoing import ConnectionInfoRequest
+from .config import gconfig
 
 
 class EnsimeClient(ProtocolHandler):
@@ -79,14 +80,12 @@ class EnsimeClient(ProtocolHandler):
 
                 with catch(websocket.WebSocketException, log_and_close):
                     result = self.ws.recv()
-                    print(result)
                     _json = json.loads(result)
                     # Watch if it has a callId
                     call_id = _json.get("callId")
                     # TODO. check if a callback is registered for this call_id
                     # in call_options or the call_id is simply None
                     if call_id is not None:
-                        print("inserting key = {k} into map".format(k=repr(call_id)))
                         self.responses[call_id] = _json
                     else:
                         if _json["payload"]:
@@ -172,7 +171,7 @@ class EnsimeClient(ProtocolHandler):
             if not self.ensime_server:
                 port = self.ensime.http_port()
                 uri = "websocket"
-                self.ensime_server = "ws://127.0.0.1:{}/{}".format(port, uri)
+                self.ensime_server = gconfig['ensime_server'].format(port, uri)
             with catch(websocket.WebSocketException, disable_completely):
                 # Use the default timeout (no timeout).
                 options = {"subprotocols": ["jerky"]}

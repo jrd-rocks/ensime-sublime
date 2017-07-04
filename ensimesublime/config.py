@@ -72,27 +72,6 @@ class ProjectConfig(collections.Mapping):
         return self._filepath
 
     @staticmethod
-    def find_from(path):
-        """Find path of an .ensime config, searching recursively upward from path.
-
-        Args:
-            path (str): Path of a file or directory from where to start searching.
-
-        Returns:
-            str: Canonical path of nearest ``.ensime``, or ``None`` if not found.
-        """
-        realpath = os.path.realpath(path)
-        config_path = os.path.join(realpath, '.ensime')
-
-        if os.path.isfile(config_path):
-            return config_path
-        elif realpath == os.path.abspath('/'):
-            return None
-        else:
-            dirname = os.path.dirname(realpath)
-            return ProjectConfig.find_from(dirname)
-
-    @staticmethod
     def parse(path):
         """Parse an ``.ensime`` config file from S-expressions.
 
@@ -123,7 +102,9 @@ class ProjectConfig(collections.Mapping):
 
                 # Recursively transform nested lists
                 if isinstance(value, list) and value and isinstance(value[0], list):
-                    newdict[key] = [sexp2dict(value[0])]
+                    newdict[key] = [sexp2dict(val) for val in value]
+                elif isinstance(value, list) and value and isinstance(value[0], sexpdata.Symbol):
+                    newdict[key] = sexp2dict(value)
                 else:
                     newdict[key] = value
 

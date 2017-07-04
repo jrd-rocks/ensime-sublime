@@ -1,6 +1,7 @@
 from .paths import normalize_path
 
 
+# Make it smarter
 class Note(object):
     def __init__(self, m):
         self.message = m['msg']
@@ -27,8 +28,9 @@ class NotesStorage(object):
                 self.per_file_cache[file_name] = []
             self.per_file_cache[file_name].append(datum)
 
-    def filter_files(self, filenames):
-        dropouts = list(normalize_path(filename) for filename in filenames)
+    def filter_files(self, pred):
+        filenames = self.per_file_cache.keys()
+        dropouts = list(normalize_path(filename) for filename in filenames if not pred(filename))
         for file_name in list(self.per_file_cache):
             if file_name in dropouts:
                 del self.per_file_cache[file_name]
