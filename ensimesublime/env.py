@@ -4,15 +4,31 @@ import os
 import threading
 import logging
 from logging.handlers import WatchedFileHandler
-import uuid
 
 from . import dotensime, sexp
 from .util import Util
-
+from .notes import NotesStorage
+from .editor import Editor
 
 env_lock = threading.RLock()
 # dictionary from window to it's EnsimeEnvironment
 ensime_envs = {}
+
+
+def getEnvironment(window):
+    """Return the EnsimeEnvironment for the window if it's valid,
+    else return None."""
+    if window:
+        env = None
+        window_key = (window.folders() or [window.id()])[0]
+        if window_key in ensime_envs:
+            env_for_key = ensime_envs[window_key]
+            if env_for_key.valid:
+                env = env_for_key
+        return env
+    else:
+        print("You must supply a window for which the ensime environment is required.")
+        return None
 
 
 def getOrCreateNew(window):
@@ -55,6 +71,8 @@ class _EnsimeEnvironment(object):
         self.window = window
         self.logger = None
         self.valid = False
+        self.notes_storage = NotesStorage()
+        self.editor = None
         self.client = None
         # Not valid when created, you must call recalc while starting up Ensime
         # self.recalc()
@@ -92,9 +110,8 @@ class _EnsimeEnvironment(object):
             Resets the session_id and client.
         """
         # plugin-wide stuff (immutable)
-        self.__settings = sublime.load_settings("Ensime.sublime-settings")
-        self.connection_timeout = self.__settings.get("timeout_connection", 30)
-        debug = self.__settings.get("debug", False)
+        self.settings = sublime.load_settings("Ensime.sublime-settings")
+        debug = self.settings.get("debug", False)
         # instance-specific stuff (immutable)
         (root, conf) = dotensime.load(self.window)
         self.project_root = root
@@ -108,10 +125,13 @@ class _EnsimeEnvironment(object):
         if self.logger is None:
             self.logger = self.create_logger(debug, self.log_file)
         # system stuff (mutable)
+        self.editor = Editor(self.window, self.settings, self.notes_storage)
         self.client = None
         return True
 
-    @property
-    def running(self):
+    def is_running(self):
         """Tells if the ensime server is up and client is connected to it."""
         return self.client is not None and self.client.running
+
+    def is_connected(self):
+        return self.client is not None and self.client.connected

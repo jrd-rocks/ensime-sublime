@@ -1,7 +1,6 @@
 # coding: utf-8
 import sublime
 
-import sys
 import time
 import json
 from threading import Thread
@@ -12,12 +11,6 @@ from .protocol import ProtocolHandler
 from .util import catch
 from .errors import LaunchError
 from .outgoing import ConnectionInfoRequest
-
-# Queue depends on python version
-if sys.version_info > (3, 0):
-    from queue import Queue
-else:
-    from Queue import Queue
 
 
 class EnsimeClient(ProtocolHandler):
@@ -42,59 +35,61 @@ class EnsimeClient(ProtocolHandler):
     which stores the a handler per response type.
     """
 
-    def __init__(self, logger, launcher, connection_timeout):
+    def __init__(self, parent_environment, launcher):
+        super(EnsimeClient, self).__init__()
         self.launcher = launcher
-        self.logger = logger
-
-        self.logger.debug('__init__: in')
+        self.env = parent_environment
+        self.env.logger.debug('__init__: in')
 
         self.ws = None
         self.ensime = None
         self.ensime_server = None
 
-        self.call_id = 0
+        self.call_id = 1
         self.call_options = {}
-        self.connection_timeout = connection_timeout
+        self.connection_timeout = self.env.settings.get("timeout_connection", 20)
 
-        # Queue for messages received from the ensime server.
-        self.queue = Queue()
+        # Map for messages received from the ensime server.
+        self.responses = {}
         # By default, don't connect to server more than once
         self.number_try_connection = 1
 
-        self.running = False
-        self.connected = False
+        self.running = True  # queue poll is running
+        self.connected = False  # connected to ensime server through websocket
 
         thread = Thread(name='queue-poller', target=self.queue_poll)
         thread.daemon = True
         thread.start()
 
     def queue_poll(self, sleep_t=0.5):
-        """Put new messages on the queue as they arrive. Blocking in a thread.
-
+        """Put new messages in the map as they arrive.
+        Since putting a value in a map is an atomic operation.
         Value of sleep is low to improve responsiveness.
         """
-        connection_alive = True
-
         while self.running:
-            if self.ws:
-                def logger_and_close(msg):
-                    self.logger.error('Websocket exception', exc_info=True)
-                    if not self.running:
-                        # Tear down has been invoked
-                        # Prepare to exit the program
-                        connection_alive = False  # noqa: F841
-                    else:
-                        if not self.number_try_connection:
-                            # Stop everything.
-                            self.teardown()
-                            self._display_ws_warning()
+            if self.ws is not None:
+                def log_and_close(msg):
+                    if self.connected:
+                        self.env.logger.error('Websocket exception', exc_info=True)
+                        # Stop everything.
+                        self.shutdown_server()
+                        self._display_ws_warning()
 
-                with catch(websocket.WebSocketException, logger_and_close):
+                with catch(websocket.WebSocketException, log_and_close):
                     result = self.ws.recv()
-                    self.queue.put(result)
-
-            if connection_alive:
-                time.sleep(sleep_t)
+                    print(result)
+                    _json = json.loads(result)
+                    # Watch if it has a callId
+                    call_id = _json.get("callId")
+                    # TODO. check if a callback is registered for this call_id
+                    # in call_options or the call_id is simply None
+                    if call_id is not None:
+                        print("inserting key = {k} into map".format(k=repr(call_id)))
+                        self.responses[call_id] = _json
+                    else:
+                        if _json["payload"]:
+                            self.handle_incoming_response(call_id, _json["payload"])
+            time.sleep(sleep_t)
 
     def connect_when_ready(self, timeout, fallback):
         """Given a maximum timeout, waits for the http port to be
@@ -107,22 +102,24 @@ class EnsimeClient(ProtocolHandler):
                 timeout -= 1
             if self.ensime.is_ready():
                 self.connected = self.connect_ensime_server()
-                self.logger.info("Connected to the server.")
+
+            if self.connected:
+                self.env.logger.info("Connected to the server.")
             else:
                 fallback()
-                self.logger.info("Couldn't connect to the server waited to long :(")
+                self.env.logger.info("Couldn't connect to the server waited to long :(")
         else:
-            self.logger.info("Already connected.")
+            self.env.logger.info("Already connected.")
 
     def setup(self):
         """Check the classpath and connect to the server if necessary."""
         def initialize_ensime():
             if not self.ensime:
-                self.logger.info("----Initialising server----")
+                self.env.logger.info("----Initialising server----")
                 try:
                     self.ensime = self.launcher.launch()
                 except LaunchError as err:
-                    self.logger.error(err)
+                    self.env.logger.error(err)
             return bool(self.ensime)
 
         # True if ensime is up, otherwise False
@@ -143,30 +140,29 @@ class EnsimeClient(ProtocolHandler):
     def send(self, msg):
         """Send something to the ensime server."""
         def reconnect(e):
-            self.logger.error('send error, reconnecting...')
+            self.env.logger.error('send error, reconnecting...')
             self.connect_ensime_server()
             if self.ws:
                 self.ws.send(msg + "\n")
 
-        self.logger.debug('send: in')
-        if self.running and self.ws:
+        self.env.logger.debug('send: in')
+        if self.ws is not None:
             with catch(websocket.WebSocketException, reconnect):
-                self.logger.debug('send: sending JSON on WebSocket')
+                self.env.logger.debug('send: sending JSON on WebSocket')
                 self.ws.send(msg + "\n")
 
     def connect_ensime_server(self):
         """Start initial connection with the server."""
-        self.logger.debug('connect_ensime_server: in')
+        self.env.logger.debug('connect_ensime_server: in')
 
         def disable_completely(e):
             if e:
-                self.logger.error('connection error: %s', e, exc_info=True)
+                self.env.logger.error('connection error: %s', e, exc_info=True)
             self.shutdown_server()
-            self.logger.info("Server was shutdown.")
+            self.env.logger.info("Server was shutdown.")
             self._display_ws_warning()
 
         if self.running and self.number_try_connection:
-            self.number_try_connection -= 1
             if not self.ensime_server:
                 port = self.ensime.http_port()
                 uri = "websocket"
@@ -175,41 +171,69 @@ class EnsimeClient(ProtocolHandler):
                 # Use the default timeout (no timeout).
                 options = {"subprotocols": ["jerky"]}
                 options['enable_multithread'] = True
-                self.logger.info("About to connect to %s with options %s",
-                                 self.ensime_server, options)
+                self.env.logger.info("About to connect to %s with options %s",
+                                     self.ensime_server, options)
                 self.ws = websocket.create_connection(self.ensime_server, **options)
-            if self.ws:
-                # self.send_request({"typehint": "ConnectionInfoReq"})
-                ConnectionInfoRequest().run(self)
-            return True
+            self.number_try_connection -= 1
+            call_id = ConnectionInfoRequest().run_in(self.env)
+            received_response = self.get_response(call_id, timeout=30)  # confirm response
+            return received_response
         else:
             # If it hits this, number_try_connection is 0
             disable_completely(None)
-            return False
+        return False
 
     def shutdown_server(self):
         """Shut down server if it is running.
         Does not change the client's running status."""
-        self.logger.debug('shutdown_server: in')
+        self.env.logger.debug('shutdown_server: in')
+        self.connected = False
         if self.ensime:
             self.ensime.stop()
-            self.connected = False
-            self.running = False
+        self.env.editor.uncolorize_all()
 
     def teardown(self):
         """Shutdown down the client. Stop the server if connected."""
-        self.logger.debug('teardown: in')
+        self.env.logger.debug('teardown: in')
         self.running = False
         self.shutdown_server()
 
     def send_request(self, request):
         """Send a request to the server."""
-        self.logger.debug('send_request: in')
+        self.env.logger.debug('send_request: in')
 
         message = {'callId': self.call_id, 'req': request}
-        self.logger.debug('send_request: %s', message)
+        self.env.logger.debug('send_request: %s', message)
         self.send(json.dumps(message))
 
         call_id = self.call_id
         self.call_id += 1
         return call_id
+
+    def get_response(self, call_id, timeout=10, should_wait=True):
+        start, now = time.time(), time.time()
+        wait = should_wait and call_id not in self.responses
+        print("looking for key = {k}".format(k=repr(call_id)))
+        while wait and (now - start) < timeout:
+            if call_id not in self.responses:
+                time.sleep(0.25)
+                now = time.time()
+            else:
+                result = self.responses[call_id]
+                self.env.logger.debug('unqueue: result received\n%s', result)
+                if result and result != "nil":
+                    wait = None
+                    # Restart timeout
+                    start, now = time.time(), time.time()
+                    # Watch out, it may not have callId
+                    call_id = result.get("callId")
+                    if result["payload"]:
+                        self.handle_incoming_response(call_id, result["payload"])
+                    del self.responses[call_id]
+                else:
+                    self.env.logger.debug('unqueue: nil or None received')
+
+        if (now - start) >= timeout:
+            self.env.logger.warning('unqueue: no reply from server for %ss', timeout)
+            return False
+        return True

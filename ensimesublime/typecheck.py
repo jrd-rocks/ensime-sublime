@@ -1,3 +1,6 @@
+from .notes import Note
+
+
 class TypecheckHandler(object):
 
     def __init__(self):
@@ -12,21 +15,22 @@ class TypecheckHandler(object):
                 self.buffered_notes.append(note)
 
     def start_typechecking(self):
-        self.log.info('Readying typecheck...')
+        self.env.logger.info('Readying typecheck...')
         self.currently_buffering_typechecks = True
         if self.currently_buffering_typechecks:
             self.buffered_notes = []
 
     def handle_typecheck_complete(self, call_id, payload):
-        """Handles ``NewScalaNotesEvent```.
+        """Handles ``NewScalaNotesEvent``.
 
         Calls editor to display/highlight line notes and clears notes buffer.
         """
-        self.log.debug('handle_typecheck_complete: in')
+        self.env.logger.debug('handle_typecheck_complete: in')
         if not self.currently_buffering_typechecks:
-            self.log.debug('Completed typecheck was not requested by user, not displaying notes')
+            self.env.logger.debug('Completed typecheck was not requested by user, not displaying notes')
             return
 
-        self.editor.display_notes(self.buffered_notes)
+        self.env.notes_storage.append(Note(note) for note in self.buffered_notes)
+        self.env.editor.redraw_highlights()
         self.currently_buffering_typechecks = False
         self.buffered_notes = []
