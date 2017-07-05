@@ -5,6 +5,7 @@ import os
 import signal
 import socket
 import subprocess
+import datetime
 from abc import ABCMeta, abstractmethod
 from fnmatch import fnmatch
 
@@ -118,7 +119,11 @@ class LaunchStrategy:
 
         Util.mkdir_p(cache_dir)
         log_path = os.path.join(cache_dir, "server.log")
-        log = open(log_path, "w")
+        with open(log_path, "w") as f:
+            now = datetime.datetime.now()
+            tm = now.strftime("%Y-%m-%d %H:%M:%S.%f")
+            f.write("{}: {} - {}\n".format(tm, "Initializing ensime process for ", self.project_root))
+        log = open(log_path, "w")        
         null = open(os.devnull, "r")
         java = os.path.join(self.config['java-home'], 'bin', 'java' if os.name != 'nt' else 'java.exe')
 

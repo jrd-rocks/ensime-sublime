@@ -40,20 +40,20 @@ feedback = {
 }
 
 
-class EnsimeProjectId(object):
-    def __init__(self, p_id):
-        self.project = p_id['project']
-        self.config = p_id['config']
+# class EnsimeProjectId(object):
+#     def __init__(self, project, config):
+#         self.project = project
+#         self.config = config
 
-    def __hash__(self):
-        return hash(self.project) ^ hash(self.config)
+#     def __hash__(self):
+#         return hash(self.project) ^ hash(self.config)
 
-    def __eq__(self, that):
-        return self.project == that.project and self.config == that.config
+#     def __eq__(self, that):
+#         return self.project == that.project and self.config == that.config
 
-    def __repr__(self):
-        return ("EnsimeProjectId({project}, {config})"
-                .format(project=self.project, config=self.config))
+#     def __repr__(self):
+#         return ("EnsimeProjectId({project}, {config})"
+#                 .format(project=self.project, config=self.config))
 
 
 class ProjectConfig(collections.Mapping):

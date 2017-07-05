@@ -4,12 +4,13 @@ import os
 import threading
 import logging
 from logging.handlers import WatchedFileHandler
+import datetime
 
 from . import dotensime
 from .util import Util
 from .notes import NotesStorage
 from .editor import Editor
-from .config import LOG_FORMAT, EnsimeProjectId
+from .config import LOG_FORMAT
 
 env_lock = threading.RLock()
 # dictionary from window to it's EnsimeEnvironment
@@ -85,6 +86,10 @@ class _EnsimeEnvironment(object):
         # console_log_formatter = logging.Formatter("[Ensime] %(asctime)s [%(levelname)-5.5s]  %(message)s")
 
         logger.handlers.clear()
+        with open(log_file, "w") as f:
+            now = datetime.datetime.now()
+            tm = now.strftime("%Y-%m-%d %H:%M:%S.%f")
+            f.write("{}: {} - {}\n".format(tm, "Initializing project", self.project_root))
         file_handler = WatchedFileHandler(log_file)
         file_handler.setFormatter(file_log_formatter)
         logger.addHandler(file_handler)
@@ -118,15 +123,7 @@ class _EnsimeEnvironment(object):
         self.project_root = self.config['root-dir']
         self.valid = self.config is not None
         self.cache_dir = self.config['cache-dir']
-        # done for smarter notes storage
-        id2project = {EnsimeProjectId(p['id']): p for p in self.config['projects']}
-        sources_to_project = {s: ([p['id']] + p['depends']) for p in self.config['projects'] for s in p['sources']}
-        self.grouped_srcs = {}
-        for key, val in sources_to_project:
-            srcs_list = []
-            for p_id in val:
-                srcs_list = srcs_list + id2project[EnsimeProjectId(p_id)]['sources']
-            self.grouped_srcs[key] = srcs_list
+        # self.id2project = {EnsimeProjectId(**p['id']): p for p in self.config['projects']}
         # ensure the cache_dir exists otherwise log initialisation will fail
         Util.mkdir_p(self.cache_dir)
         self.log_file = os.path.join(self.cache_dir, "ensime.log")

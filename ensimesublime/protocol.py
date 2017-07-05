@@ -24,6 +24,7 @@ class ProtocolHandler(object):
         self.handlers["AnalyzerReadyEvent"] = self.handle_analyzer_ready
         self.handlers["NewScalaNotesEvent"] = self.handle_scala_notes
         self.handlers["NewJavaNotesEvent"] = self.handle_java_notes
+        self.handlers["ClearAllScalaNotesEvent"] = self.handle_clear_scala_notes
         # self.handlers["BasicTypeInfo"] = self.show_type
         # self.handlers["ArrowTypeInfo"] = self.show_type
         self.handlers["FullTypeCheckCompleteEvent"] = self.handle_typecheck_complete
@@ -65,10 +66,13 @@ class ProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_scala_notes(self, call_id, payload):
-        self.env.notes_storage.append(Note(note) for note in payload['notes'])
+        self.env.notes_storage.append(map(Note, payload['notes']))
 
     def handle_java_notes(self, call_id, payload):
         pass
+
+    def handle_clear_scala_notes(self, call_id, payload):
+        self.env.notes_storage.clear()
 
     def handle_typecheck_complete(self, call_id, payload):
         self.env.editor.redraw_highlights()

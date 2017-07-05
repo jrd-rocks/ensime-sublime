@@ -28,12 +28,14 @@ class NotesStorage(object):
                 self.per_file_cache[file_name] = []
             self.per_file_cache[file_name].append(datum)
 
-    def filter_files(self, pred):
-        filenames = self.per_file_cache.keys()
-        dropouts = list(normalize_path(filename) for filename in filenames if not pred(filename))
-        for file_name in list(self.per_file_cache):
-            if file_name in dropouts:
-                del self.per_file_cache[file_name]
+    # def filter_files(self, filenames):
+    #     dropouts = list(normalize_path(filename) for filename in filenames)
+    #     for file_name in list(self.per_file_cache):
+    #         if file_name in dropouts:
+    #             del self.per_file_cache[file_name]
+
+    def clear(self):
+        self.per_file_cache.clear()
 
     # requires self.data
     # def filter_notes(self, pred):
@@ -43,10 +45,6 @@ class NotesStorage(object):
     #     for file_name in list(self.per_file_cache):
     #         if file_name in dropouts:
     #             del self.per_file_cache[file_name]
-
-    def clear(self):
-        # self.filter(lambda f: False)
-        self.per_file_cache = {}
 
     def for_file(self, file_name):
         if file_name not in self.normalized_cache:
