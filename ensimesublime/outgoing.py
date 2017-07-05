@@ -18,3 +18,16 @@ class TypeCheckFilesReq(RpcRequest):
             {"typehint": "TypecheckFilesReq",
              "files": self.filenames})
         return call_id
+
+
+class SymbolAtPointReq(RpcRequest):
+    def __init__(self, filename, pos):
+        self.filename = filename
+        self.pos = pos
+
+    def run_in(self, env):
+        call_id = env.client.send_request({
+            "point": self.pos,
+            "typehint": "SymbolAtPointReq",
+            "file": self.filename})
+        return call_id

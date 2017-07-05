@@ -4,6 +4,7 @@ import os
 import threading
 import logging
 from logging.handlers import WatchedFileHandler
+from functools import partial as bind
 import datetime
 
 from . import dotensime
@@ -29,8 +30,6 @@ def getEnvironment(window):
                 env = env_for_key
         return env
     else:
-        # Get here when the view is showing a file in a hidden directory (like .ensime_cache/)
-        print("You are in a hidden directory.(like .ensime_cache/)")
         return None
 
 
@@ -140,3 +139,9 @@ class _EnsimeEnvironment(object):
 
     def is_connected(self):
         return self.client is not None and self.client.connected
+
+    def status_message(self, msg):
+        sublime.set_timeout(bind(sublime.status_message, msg), 0)
+
+    def error_message(self, msg):
+        sublime.set_timeout(bind(sublime.error_message, msg), 0)

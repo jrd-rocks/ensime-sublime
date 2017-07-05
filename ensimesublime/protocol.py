@@ -1,4 +1,7 @@
 # coding: utf-8
+from threading import Thread
+import time
+
 from .util import catch
 from .notes import Note
 
@@ -19,7 +22,7 @@ class ProtocolHandler(object):
 
         A handler must accept only one parameter: `payload`.
         """
-        # self.handlers["SymbolInfo"] = self.handle_symbol_info
+        self.handlers["SymbolInfo"] = self.handle_symbol_info
         self.handlers["IndexerReadyEvent"] = self.handle_indexer_ready
         self.handlers["AnalyzerReadyEvent"] = self.handle_analyzer_ready
         self.handlers["NewScalaNotesEvent"] = self.handle_scala_notes
@@ -43,7 +46,7 @@ class ProtocolHandler(object):
     def handle_incoming_response(self, call_id, payload):
         """Get a registered handler for a given response and execute it."""
         self.env.logger.debug('handle_incoming_response: in [typehint: %s, call ID: %s]',
-                          payload['typehint'], call_id)  # We already log the full JSON response
+                              payload['typehint'], call_id)  # We already log the full JSON response
 
         typehint = payload["typehint"]
         handler = self.handlers.get(typehint)
@@ -91,7 +94,39 @@ class ProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_symbol_info(self, call_id, payload):
-        raise NotImplementedError()
+        decl_pos = payload.get("declPos")
+        if decl_pos is None:
+            self.env.error_message("Couldn't find the declaration position for symbol.\n{}"
+                                   .format(payload.get("name")))
+            return
+        f = decl_pos.get("file")
+        if f is None:
+            self.env.error_message("Couldn't find the file where it's defined.")
+            return
+        self.env.logger.debug("Jumping to file : {}".format(f))
+        view = self.env.window.open_file(f)
+
+        # either has line or offset
+        def _scroll_once_loaded(sleep_t=1, attempts=10):
+            offset = decl_pos.get("offset")
+            line = decl_pos.get("line")
+            if not offset and not line:
+                self.env.logger.debug("No offset or line number were found.")
+                return
+            while view.is_loading() and attempts:
+                time.sleep(sleep_t)
+                attempts -= 1
+            if not view.is_loading():
+                if not offset:
+                    offset = view.text_point(line + 1, 1)
+                self.env.logger.debug("Scrolling to offset : {}".format(offset))
+                view.show_at_center(offset)
+            else:
+                self.env.logger.debug("Scrolling failed as the view wasn't ready.")
+
+        thread = Thread(name='queue-poller', target=_scroll_once_loaded)
+        thread.daemon = True
+        thread.start()
 
     def handle_string_response(self, call_id, payload):
         raise NotImplementedError()

@@ -6,7 +6,7 @@ from .ensimesublime.core import EnsimeWindowCommand, EnsimeTextCommand
 from .ensimesublime.env import getEnvironment
 from .ensimesublime.launcher import EnsimeLauncher
 from .ensimesublime.client import EnsimeClient
-from .ensimesublime.outgoing import TypeCheckFilesReq
+from .ensimesublime.outgoing import TypeCheckFilesReq, SymbolAtPointReq
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -57,9 +57,10 @@ class EnsimeEventListener(sublime_plugin.EventListener):
                 env.editor.colorize(view)
 
 
-class PrivateToolViewAppendCommand(EnsimeTextCommand):
-    def run(self, edit, content):
-        selection_was_at_end = len(self.v.sel()) == 1 and self.v.sel()[0] == sublime.Region(self.v.size())
-        self.view.insert(edit, self.view.size(), content)
-        if selection_was_at_end:
-            self.view.show(self.view.size())
+class EnsimeGoToDefinition(EnsimeTextCommand):
+    def run(self, edit, target=None):
+        env = getEnvironment(self.view.window())
+        if env and env.is_connected():
+            pos = int(target or self.view.sel()[0].begin())
+            call_id = SymbolAtPointReq(self.view.file_name(), pos).run_in(env)
+            env.client.get_response(call_id)
