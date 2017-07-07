@@ -1,4 +1,4 @@
-from .paths import normalize_path
+from paths import normalize_path
 
 
 class Note(object):

@@ -1,10 +1,8 @@
 import sublime
 import sublime_plugin
 
-from functools import partial as bind
-
-from .paths import relative_path, is_subpath
-from . import env
+from paths import relative_path, is_subpath
+import env
 
 
 class EnsimeCommon(object):

@@ -9,8 +9,8 @@ import datetime
 from abc import ABCMeta, abstractmethod
 from fnmatch import fnmatch
 
-from .util import catch, Util
-from .errors import LaunchError, InvalidJavaPathError
+from util import catch, Util
+from errors import LaunchError, InvalidJavaPathError
 
 
 class EnsimeProcess(object):

@@ -7,11 +7,11 @@ from logging.handlers import WatchedFileHandler
 from functools import partial as bind
 import datetime
 
-from . import dotensime
-from .util import Util
-from .notes import NotesStorage
-from .editor import Editor
-from .config import LOG_FORMAT
+import dotensime
+from util import Util
+from notes import NotesStorage
+from editor import Editor
+from config import LOG_FORMAT
 
 env_lock = threading.RLock()
 # dictionary from window to it's EnsimeEnvironment

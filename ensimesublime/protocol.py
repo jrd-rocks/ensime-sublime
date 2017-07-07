@@ -2,10 +2,10 @@
 from threading import Thread
 import time
 
-from .util import catch
-from .notes import Note
-from .outgoing import AddImportRefactorDesc
-from .patch import fromfile
+from util import catch
+from notes import Note
+from outgoing import AddImportRefactorDesc
+from patch import fromfile
 
 
 class ProtocolHandler(object):

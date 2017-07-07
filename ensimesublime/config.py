@@ -2,12 +2,10 @@
 
 import collections
 import os
-import operator
-import functools
 
 import sexpdata
 
-from .util import Util
+from util import Util
 
 LOG_FORMAT = '%(levelname)-8s <%(asctime)s> (%(filename)s:%(lineno)d) - %(message)s'
 

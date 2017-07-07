@@ -1,12 +1,11 @@
 import sys
 import sublime_plugin
-import sublime
 
-from .ensimesublime.core import EnsimeWindowCommand, EnsimeTextCommand
-from .ensimesublime.env import getEnvironment
-from .ensimesublime.launcher import EnsimeLauncher
-from .ensimesublime.client import EnsimeClient
-from .ensimesublime.outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq
+from core import EnsimeWindowCommand, EnsimeTextCommand
+from env import getEnvironment
+from launcher import EnsimeLauncher
+from client import EnsimeClient
+from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq
 
 
 class EnsimeStartup(EnsimeWindowCommand):

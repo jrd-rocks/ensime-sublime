@@ -1,8 +1,8 @@
 import os
 import errno
 
-from .errors import DotEnsimeNotFound, BadEnsimeConfig
-from .config import ProjectConfig
+from errors import DotEnsimeNotFound, BadEnsimeConfig
+from config import ProjectConfig
 
 
 def _locations(window):

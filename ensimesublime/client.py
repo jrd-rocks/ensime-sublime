@@ -7,11 +7,11 @@ from threading import Thread
 
 import websocket
 
-from .protocol import ProtocolHandler
-from .util import catch
-from .errors import LaunchError
-from .outgoing import ConnectionInfoRequest
-from .config import gconfig
+from protocol import ProtocolHandler
+from util import catch
+from errors import LaunchError
+from outgoing import ConnectionInfoRequest
+from config import gconfig
 
 
 class EnsimeClient(ProtocolHandler):
