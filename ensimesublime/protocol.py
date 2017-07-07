@@ -4,6 +4,8 @@ import time
 
 from .util import catch
 from .notes import Note
+from .outgoing import AddImportRefactorDesc
+from .patch import fromfile
 
 
 class ProtocolHandler(object):
@@ -39,8 +41,8 @@ class ProtocolHandler(object):
         # self.handlers["DebugBreakEvent"] = self.handle_debug_break
         # self.handlers["DebugBacktrace"] = self.handle_debug_backtrace
         # self.handlers["DebugVmError"] = self.handle_debug_vm_error
-        # self.handlers["RefactorDiffEffect"] = self.apply_refactor
-        # self.handlers["ImportSuggestions"] = self.handle_import_suggestions
+        self.handlers["RefactorDiffEffect"] = self.apply_refactor
+        self.handlers["ImportSuggestions"] = self.handle_import_suggestions
         # self.handlers["PackageInfo"] = self.handle_package_info
 
     def handle_incoming_response(self, call_id, payload):
@@ -85,7 +87,22 @@ class ProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_import_suggestions(self, call_id, payload):
-        raise NotImplementedError()
+        imports = list()
+        for suggestions in payload['symLists']:
+            for suggestion in suggestions:
+                imports.append(suggestion['name'].replace('$', '.'))
+        imports = list(sorted(set(imports)))
+
+        if not imports:
+            self.env.error_message('No import suggestions found.')
+            return
+
+        def do_refactor(choice):
+            if choice > -1:
+                file_name = self.call_options[call_id].get('file_name')
+                AddImportRefactorDesc(file_name, imports[choice]).run_in(self.env)
+
+        self.env.window.show_quick_panel(imports, do_refactor)
 
     def handle_package_info(self, call_id, payload):
         raise NotImplementedError()
@@ -136,6 +153,22 @@ class ProtocolHandler(object):
 
     def handle_type_inspect(self, call_id, payload):
         raise NotImplementedError()
+
+    def apply_refactor(self, call_id, payload):
+        supported_refactorings = ["AddImport"]
+        if payload["refactorType"]["typehint"] in supported_refactorings:
+            diff_file = payload["diff"]
+            patch_set = fromfile(diff_file)
+        result = patch_set.apply(0, "/")
+        if result:
+            # self.reload_file()  #not implemented
+            self.env.logger.info("Refactoring succeeded, patch file: {}"
+                                 .format(diff_file))
+            self.env.status_message("Refactoring succeeded")
+        else:
+            self.env.logger.error("Patch refactoring failed, patch file: {}"
+                                  .format(diff_file))
+            self.env.status_message("Refactor failed: {}".format(diff_file))
 
     def show_type(self, call_id, payload):
         raise NotImplementedError()

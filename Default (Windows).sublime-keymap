@@ -1,0 +1,3 @@
+[
+  { "keys": ["alt+i"], "command": "ensime_add_import" }
+]

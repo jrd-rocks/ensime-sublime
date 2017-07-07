@@ -48,6 +48,8 @@ class EnsimeClient(ProtocolHandler):
 
         self.call_id = 1
         self.call_options = {}
+        self.refactor_id = 1
+        self.refactorings = {}
         self.connection_timeout = self.env.settings.get("timeout_connection", 20)
 
         # Map for messages received from the ensime server.
@@ -80,16 +82,30 @@ class EnsimeClient(ProtocolHandler):
 
                 with catch(websocket.WebSocketException, log_and_close):
                     result = self.ws.recv()
-                    _json = json.loads(result)
-                    # Watch if it has a callId
-                    call_id = _json.get("callId")
-                    # TODO. check if a callback is registered for this call_id
-                    # in call_options or the call_id is simply None
-                    if call_id is not None:
-                        self.responses[call_id] = _json
-                    else:
-                        if _json["payload"]:
-                            self.handle_incoming_response(call_id, _json["payload"])
+                    if result:
+                        try:
+                            _json = json.loads(result)
+                        except json.JSONDecodeError as e:
+                            self.env.logger.error(e.msg)
+                        else:
+                            # Watch if it has a callId
+                            call_id = _json.get("callId")
+
+                            def handle_now():
+                                if _json["payload"]:
+                                    self.handle_incoming_response(call_id, _json["payload"])
+
+                            def handle_later():
+                                self.responses[call_id] = _json
+
+                            if call_id is None:
+                                handle_now()
+                            else:
+                                call_opt = self.call_options.get(call_id)
+                                if call_opt and call_opt['async']:
+                                    handle_now()
+                                else:
+                                    handle_later()
             time.sleep(sleep_t)
 
     def connect_when_ready(self, timeout, fallback):
@@ -154,6 +170,26 @@ class EnsimeClient(ProtocolHandler):
                 self.env.logger.debug('send: sending JSON on WebSocket')
                 self.ws.send(msg + "\n")
 
+    def get_response(self, call_id, timeout=10, should_wait=True):
+        """Gets a response with the specified call_id.
+        If should_wait is set to true waits for the response to appear
+        in the `responses` map for time specified by timeout.
+        Returns True or False based on wether a response for that call_id was found."""
+        start, now = time.time(), time.time()
+        while should_wait and (call_id not in self.responses) and (now - start) < timeout:
+                time.sleep(0.25)
+                now = time.time()
+        if call_id not in self.responses:
+            print(self.responses)
+            self.env.logger.warning('no reply from server for %ss', timeout)
+            return False
+        result = self.responses[call_id]
+        self.env.logger.debug('result received\n%s', result)
+        if result["payload"]:
+            self.handle_incoming_response(call_id, result["payload"])
+        del self.responses[call_id]
+        return True
+
     def connect_ensime_server(self):
         """Start initial connection with the server.
         Return True if the connection info is received
@@ -180,9 +216,8 @@ class EnsimeClient(ProtocolHandler):
                                      self.ensime_server, options)
                 self.ws = websocket.create_connection(self.ensime_server, **options)
             self.number_try_connection -= 1
-            call_id = ConnectionInfoRequest().run_in(self.env)
-            received_response = self.get_response(call_id, timeout=30)  # confirm response
-            return received_response
+            got_response = ConnectionInfoRequest().run_in(self.env)  # confirm response
+            return got_response
         else:
             # If it hits this, number_try_connection is 0
             disable_completely(None)
@@ -204,46 +239,3 @@ class EnsimeClient(ProtocolHandler):
         self.env.logger.debug('teardown: in')
         self.running = False
         self.shutdown_server()
-
-    def send_request(self, request):
-        """Send a request to the server."""
-        self.env.logger.debug('send_request: in')
-
-        message = {'callId': self.call_id, 'req': request}
-        self.env.logger.debug('send_request: %s', message)
-        self.send(json.dumps(message))
-
-        call_id = self.call_id
-        self.call_id += 1
-        return call_id
-
-    def get_response(self, call_id, timeout=10, should_wait=True):
-        """Gets a response with the specified call_id.
-        If should_wait is set to true waits for the response to appear
-        in the `responses` map for time specified by timeout.
-        Returns True or False based on wether a response for that call_id was found."""
-        start, now = time.time(), time.time()
-        wait = should_wait and call_id not in self.responses
-        while wait and (now - start) < timeout:
-            if call_id not in self.responses:
-                time.sleep(0.25)
-                now = time.time()
-            else:
-                result = self.responses[call_id]
-                self.env.logger.debug('unqueue: result received\n%s', result)
-                if result and result != "nil":
-                    wait = None
-                    # Restart timeout
-                    start, now = time.time(), time.time()
-                    # Watch out, it may not have callId
-                    call_id = result.get("callId")
-                    if result["payload"]:
-                        self.handle_incoming_response(call_id, result["payload"])
-                    del self.responses[call_id]
-                else:
-                    self.env.logger.debug('unqueue: nil or None received')
-
-        if (now - start) >= timeout:
-            self.env.logger.warning('unqueue: no reply from server for %ss', timeout)
-            return False
-        return True

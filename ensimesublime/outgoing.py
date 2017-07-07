@@ -18,13 +18,17 @@ class RpcRequest(object):
         return call_id
 
     def run_in(self, env, async=False):
-        self.send_request(self.json_repr(), env.client, async)
+        call_id = self.send_request(self.json_repr(), env.client, async)
+        if not async:
+            got_response = env.client.get_response(call_id)
+            return got_response
+        return True
 
     def json_repr(self):
         raise NotImplementedError
 
     def call_options(self):
-        return None
+        return {}
 
 
 class ConnectionInfoRequest(RpcRequest):
@@ -67,7 +71,55 @@ class ImportSuggestionsReq(RpcRequest):
 
     def json_repr(self):
         return {"point": self.pos,
-                "maxResults": self.maxResults,
+                "maxResults": self.max_results,
                 "names": self.names,
                 "typehint": "ImportSuggestionsReq",
                 "file": self.file}
+
+    def call_options(self):
+        return {'file_name': self.file}
+
+
+class RefactorRequest(RpcRequest):
+    def __init__(self):
+        super(RefactorRequest, self).__init__()
+
+    def run_in(self, env, async=True):
+        call_id = self.send_refactor_request(self.json_repr(), env.client, async)
+        if not async:
+            got_response = env.client.get_response(call_id)
+            return got_response
+        return True
+
+    def send_refactor_request(self, req, client, async):
+        """Send a refactor request to the Ensime server.
+
+        The `ref_params` field will always have a field `type`.
+        """
+        ref_type = req['ref_type']
+        ref_params = req['ref_params']
+        ref_options = req['ref_options']
+        request = {
+            "typehint": ref_type,
+            "procId": client.refactor_id,
+            "params": ref_params
+        }
+        f = ref_params["file"]
+        client.refactorings[client.refactor_id] = f
+        client.refactor_id += 1
+        request.update(ref_options)
+        self.send_request(request, client, async)
+
+
+class AddImportRefactorDesc(RefactorRequest):
+    def __init__(self, file, name):
+        self.file = file
+        self.name = name
+        super(AddImportRefactorDesc, self).__init__()
+
+    def json_repr(self):
+        return {'ref_type': "RefactorReq",
+                'ref_params': {"typehint": "AddImportRefactorDesc",
+                               "file": self.file,
+                               "qualifiedName": self.name},
+                'ref_options': {"interactive": False}}

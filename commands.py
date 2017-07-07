@@ -6,7 +6,7 @@ from .ensimesublime.core import EnsimeWindowCommand, EnsimeTextCommand
 from .ensimesublime.env import getEnvironment
 from .ensimesublime.launcher import EnsimeLauncher
 from .ensimesublime.client import EnsimeClient
-from .ensimesublime.outgoing import TypeCheckFilesReq, SymbolAtPointReq
+from .ensimesublime.outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -40,15 +40,13 @@ class EnsimeEventListener(sublime_plugin.EventListener):
         env = getEnvironment(view.window())
         if env:
             if env.is_connected():
-                call_id = TypeCheckFilesReq([view.file_name()]).run_in(env)
-                env.client.get_response(call_id)
+                TypeCheckFilesReq([view.file_name()]).run_in(env)
 
     def on_post_save_async(self, view):
         env = getEnvironment(view.window())
         if env:
             if env.is_connected():
-                call_id = TypeCheckFilesReq([view.file_name()]).run_in(env)
-                env.client.get_response(call_id)
+                TypeCheckFilesReq([view.file_name()]).run_in(env)
 
     def on_activated_async(self, view):
         env = getEnvironment(view.window())
@@ -62,5 +60,16 @@ class EnsimeGoToDefinition(EnsimeTextCommand):
         env = getEnvironment(self.view.window())
         if env and env.is_connected():
             pos = int(target or self.view.sel()[0].begin())
-            call_id = SymbolAtPointReq(self.view.file_name(), pos).run_in(env)
-            env.client.get_response(call_id)
+            SymbolAtPointReq(self.view.file_name(), pos).run_in(env)
+
+
+class EnsimeAddImport(EnsimeTextCommand):
+    def run(self, edit, target=None):
+        env = getEnvironment(self.view.window())
+        if env and env.is_connected():
+            pos = int(target or self.view.sel()[0].begin())
+            if self.view.is_dirty():
+                self.view.run_command('save')
+            ImportSuggestionsReq(pos,
+                                 self.view.file_name(),
+                                 self.view.substr(self.view.word(pos))).run_in(env)

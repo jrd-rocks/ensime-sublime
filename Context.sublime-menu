@@ -16,7 +16,8 @@
             "caption": "Development",
             "children":
             [
-              { "caption": "Go to definition", "command": "ensime_go_to_definition" }
+              { "caption": "Go to definition", "command": "ensime_go_to_definition" },
+              { "caption": "Add import", "command": "ensime_add_import" }
             ]
           }
         ]
