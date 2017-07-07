@@ -10,7 +10,7 @@ class RpcRequest(object):
         message = {'callId': client.call_id, 'req': request}
         client.call_options[client.call_id] = {'async': async}
         client.call_options[client.call_id].update(self.call_options())
-        client.env.logger.debug('send_request: %s', message)
+        client.env.logger.info('send_request: %s', message)
         client.send(json.dumps(message))
 
         call_id = client.call_id

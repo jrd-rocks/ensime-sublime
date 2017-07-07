@@ -37,7 +37,7 @@
   "sbt_flags": ["-Dsbt.log.noformat=true"],
 
   // miscellaneous settings
-  "debug": true,
+  "debug": false,
   "debug_autolayout": true,
   "debug_layout_when_entering_debugmode": {
     "layout": {
