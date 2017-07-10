@@ -5,7 +5,7 @@ class Note(object):
     def __init__(self, m):
         self.message = m['msg']
         self.file_name = m['file']
-        self.severity = m['severity']
+        self.severity = m['severity']['typehint']
         self.start = m['beg']
         self.end = m['end']
         self.line = m['line']

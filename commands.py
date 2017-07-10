@@ -1,5 +1,8 @@
-import sys
 import sublime_plugin
+import sublime
+
+import sys
+from functools import partial as bind
 
 from core import EnsimeWindowCommand, EnsimeTextCommand
 from env import getEnvironment
@@ -18,8 +21,8 @@ class EnsimeStartup(EnsimeWindowCommand):
             self.env.recalc()
         except Exception:
             typ, value, traceback = sys.exc_info()
-            self.error_message("Got an error :\n{t} : {val}"
-                               .format(t=typ, val=str(value).split(".")[-1]))
+            self.env.error_message("Got an error :\n{t} : {val}"
+                                   .format(t=typ, val=str(value).split(".")[-1]))
         else:
             launcher = EnsimeLauncher(self.env.config)
             self.env.client = EnsimeClient(self.env, launcher)
@@ -34,32 +37,39 @@ class EnsimeShutdown(EnsimeWindowCommand):
         self.env.client.teardown()
 
 
+class EnsimeShowErrors(EnsimeWindowCommand):
+    def is_enabled(self):
+        return bool(self.env and self.env.is_connected() and len(self.env.window.views()) > 0)
+
+    def run(self):
+        self.env.editor.show_errors = True
+        self.env.editor.update_phantoms()
+
+
 class EnsimeEventListener(sublime_plugin.EventListener):
-    def on_load_async(self, view):
+    def on_load(self, view):
         env = getEnvironment(view.window())
         if env:
             if env.is_connected():
                 TypeCheckFilesReq([view.file_name()]).run_in(env)
 
-    def on_post_save_async(self, view):
+    def on_post_save(self, view):
         env = getEnvironment(view.window())
         if env:
             if env.is_connected():
                 TypeCheckFilesReq([view.file_name()]).run_in(env)
-
-    def on_activated_async(self, view):
-        env = getEnvironment(view.window())
-        if env:
-            if env.is_connected():
-                env.editor.colorize(view)
+                env.editor.show_errors = True
 
 
 class EnsimeGoToDefinition(EnsimeTextCommand):
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
         if env and env.is_connected():
+            if len(self.view.sel()) > 2:
+                env.status_message("You have multiple cursors. Trying to confuse ensime, eh?")
+                return
             pos = int(target or self.view.sel()[0].begin())
-            SymbolAtPointReq(self.view.file_name(), pos).run_in(env)
+            SymbolAtPointReq(self.view.file_name(), pos).run_in(env, async=True)
 
 
 class EnsimeAddImport(EnsimeTextCommand):

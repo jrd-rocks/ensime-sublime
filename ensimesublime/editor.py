@@ -1,6 +1,6 @@
 import sublime
 
-# from functools import partial as bind
+import html
 
 
 # view names
@@ -22,6 +22,8 @@ class Editor(object):
         self.w = window
         self.settings = settings
         self.notes_storage = notes_storage
+        self.phantom_sets_by_buffer = {}
+        self.show_errors = False
 
     def colorize(self, view=None):
         if view is None:
@@ -40,13 +42,19 @@ class Editor(object):
         view.erase_regions(ENSIME_ERROR_UNDERLINE_REGION)
         # don't erase breakpoints, they should be permanent regardless of whether ensime is running or not
         # view.erase_regions(ENSIME_BREAKPOINT_REGION)
-        view.erase_regions(ENSIME_DEBUGFOCUS_REGION)
-        view.erase_regions(ENSIME_STACKFOCUS_REGION)
+        # view.erase_regions(ENSIME_DEBUGFOCUS_REGION)
+        # view.erase_regions(ENSIME_STACKFOCUS_REGION)
         # self.redraw_status()
 
     def uncolorize_all(self):
         for view in self.w.views():
             self.uncolorize(view)
+
+    def redraw_all_highlights(self):
+        for view in self.w.views():
+            self.redraw_highlights(view)
+        if(self.show_errors):
+            self.update_phantoms()
 
     def redraw_highlights(self, view=None):
         if view is None:
@@ -66,22 +74,92 @@ class Editor(object):
                 sublime.DRAW_EMPTY_AS_OVERWRITE)
 
         # Outline entire errored line
-        errors = [view.full_line(note.start) for note in relevant_notes]
+        errors = [view.full_line(note.start) for note in relevant_notes if note.severity == "NoteError"]
         if self.settings.get("error_highlight"):
             view.add_regions(
                 ENSIME_ERROR_OUTLINE_REGION,
                 errors + view.get_regions(ENSIME_ERROR_OUTLINE_REGION),
                 self.settings.get("error_scope"),
                 self.settings.get("error_icon"),
-                sublime.DRAW_OUTLINED)
+                sublime.DRAW_NO_FILL)
 
         # we might need to add/remove/refresh the error message in the status bar
         # self.redraw_status(view)
-
+        # self.update_phantoms(view)
         # breakpoints and debug focus should always have priority over red squiggles
         # self.redraw_breakpoints(view)
         # self.redraw_debug_focus(view)
         # self.redraw_stack_focus(view)
+
+    def update_phantoms(self):
+        stylesheet = '''
+            <style>
+                .warn{
+                    background-color: color(var(--background) blend(yellow 50%));
+                }
+                div.error, div.warn {
+                    padding: 0.4rem 0 0.4rem 0.7rem;
+                    margin: 0.2rem 0;
+                    border-radius: 2px;
+                }
+                div.error span.message, div.warn span.message {
+                    padding-right: 0.7rem;
+                }
+                div.error a, div.warn a {
+                    text-decoration: inherit;
+                    padding: 0.35rem 0.7rem 0.45rem 0.8rem;
+                    position: relative;
+                    bottom: 0.05rem;
+                    border-radius: 0 2px 2px 0;
+                    font-weight: bold;
+                }
+                html.dark div.error a, html.dark div.warn a {
+                    background-color: #00000018;
+                }
+                html.light div.error a, html.light div.warn a {
+                    background-color: #ffffff18;
+                }
+            </style>
+        '''
+        for file in self.notes_storage.per_file_cache.keys():
+            view = self.w.find_open_file(str(file))
+            buffer_id = view.buffer_id()
+            if buffer_id not in self.phantom_sets_by_buffer:
+                phantom_set = sublime.PhantomSet(view, "exec")
+                self.phantom_sets_by_buffer[buffer_id] = phantom_set
+            else:
+                phantom_set = self.phantom_sets_by_buffer[buffer_id]
+
+            phantoms = []
+
+            errs = self.notes_storage.for_file(view.file_name())
+
+            for note in errs:
+                print(note.severity)
+                if note.severity == "NoteInfo":
+                    continue
+                clss = "error" if note.severity == "NoteError" else "warn"
+                phantoms.append(sublime.Phantom(
+                    sublime.Region(note.start, note.end),
+                    ('<body id=inline-error>' + stylesheet +
+                        '<div class=' + clss + '>' +
+                        '<span class="message">' + html.escape(note.message, quote=False) + '</span>' +
+                        '<a href=hide>' + chr(0x00D7) + '</a></div>' +
+                        '</body>'),
+                    sublime.LAYOUT_BLOCK,
+                    on_navigate=self.on_phantom_navigate))
+
+            phantom_set.update(phantoms)
+
+    def hide_phantoms(self):
+        for file in self.notes_storage.per_file_cache.keys():
+            view = self.w.find_open_file(str(file))
+            view.erase_phantoms("exec")
+        self.show_errors = False
+        self.phantom_sets_by_buffer = {}
+
+    def on_phantom_navigate(self, url):
+        self.hide_phantoms()
 
     # def redraw_status(self, view, custom_status=None):
     #     if custom_status:
@@ -178,19 +256,19 @@ class Editor(object):
     #             self.redraw_breakpoints()
     #             sublime.set_timeout(bind(self._scroll_viewport, view, focused_region), 0)
 
-    def _scroll_viewport(self, v, region):
-        # thanks to Fredrik Ehnbom
-        # see https://github.com/quarnster/SublimeGDB/blob/master/sublimegdb.py
-        # Shouldn't have to call viewport_extent, but it
-        # seems to flush whatever value is stale so that
-        # the following set_viewport_position works.
-        # Keeping it around as a WAR until it's fixed
-        # in Sublime Text 2.
-        v.viewport_extent()
-        # v.set_viewport_position(data, False)
-        v.sel().clear()
-        v.sel().add(region.begin())
-        v.show(region)
+    # def _scroll_viewport(self, v, region):
+    #     # thanks to Fredrik Ehnbom
+    #     # see https://github.com/quarnster/SublimeGDB/blob/master/sublimegdb.py
+    #     # Shouldn't have to call viewport_extent, but it
+    #     # seems to flush whatever value is stale so that
+    #     # the following set_viewport_position works.
+    #     # Keeping it around as a WAR until it's fixed
+    #     # in Sublime Text 2.
+    #     v.viewport_extent()
+    #     # v.set_viewport_position(data, False)
+    #     v.sel().clear()
+    #     v.sel().add(region.begin())
+    #     v.show(region)
 
     # def redraw_stack_focus(self, view):
     #     view.erase_regions(ENSIME_STACKFOCUS_REGION)

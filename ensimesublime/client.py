@@ -231,6 +231,7 @@ class EnsimeClient(ProtocolHandler):
         self.connected = False
         if self.ensime:
             self.ensime.stop()
+            self.env.logger.info('Server shutdown.')
         self.env.editor.uncolorize_all()
 
     def teardown(self):

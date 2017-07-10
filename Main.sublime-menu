@@ -14,6 +14,13 @@
                       { "caption": "Startup", "command": "ensime_startup" },
                       { "caption": "Shutdown", "command": "ensime_shutdown" }
                     ]
+                  },
+                  {
+                    "caption": "Development",
+                    "children":
+                    [
+                      { "caption": "Show errors and warnings", "command": "ensime_show_errors" }
+                    ]
                   }
                 ]
             }

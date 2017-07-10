@@ -80,7 +80,7 @@ class ProtocolHandler(object):
         self.env.notes_storage.clear()
 
     def handle_typecheck_complete(self, call_id, payload):
-        self.env.editor.redraw_highlights()
+        self.env.editor.redraw_all_highlights()
         self.env.logger.info("Handled FullTypecheckCompleteEvent. Redrawing highlights.")
 
     def handle_debug_vm_error(self, call_id, payload):
