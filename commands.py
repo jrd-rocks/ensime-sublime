@@ -8,7 +8,7 @@ from core import EnsimeWindowCommand, EnsimeTextCommand
 from env import getEnvironment
 from launcher import EnsimeLauncher
 from client import EnsimeClient
-from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq, OrganiseImports
+from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq, OrganiseImports, RenameRefactorDesc
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -61,6 +61,10 @@ class EnsimeEventListener(sublime_plugin.EventListener):
 
 
 class EnsimeGoToDefinition(EnsimeTextCommand):
+    def is_enabled(self, args):
+        env = getEnvironment(sublime.active_window())
+        return bool(env and env.is_connected())
+
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
         if env and env.is_connected():
@@ -72,6 +76,10 @@ class EnsimeGoToDefinition(EnsimeTextCommand):
 
 
 class EnsimeAddImport(EnsimeTextCommand):
+    def is_enabled(self, args):
+        env = getEnvironment(sublime.active_window())
+        return bool(env and env.is_connected())
+
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
         if env and env.is_connected():
@@ -84,9 +92,39 @@ class EnsimeAddImport(EnsimeTextCommand):
 
 
 class EnsimeOrganiseImports(EnsimeTextCommand):
+    def is_enabled(self, args):
+        env = getEnvironment(sublime.active_window())
+        return bool(env and env.is_connected())
+
     def run(self, edit):
         env = getEnvironment(self.view.window())
         if env and env.is_connected():
             if self.view.is_dirty():
                 self.view.run_command('save')
             OrganiseImports(self.view.file_name()).run_in(env, async=True)
+
+
+class EnsimeRename(EnsimeTextCommand):
+    def is_enabled(self, args):
+        env = getEnvironment(sublime.active_window())
+        return bool(env and env.is_connected())
+
+    def run(self, edit):
+        env = getEnvironment(self.view.window())
+        if env and env.is_connected():
+            regions = [r for r in self.view.sel()]
+            if len(regions) == 1:
+                region = regions[0]
+                if region.begin() == region.end():
+                    env.status_message('Please select a region to extract the symbol to rename')
+                else:
+                    def make_request(arg):
+                        RenameRefactorDesc(arg,
+                                           region.begin(),
+                                           region.end(),
+                                           self.view.file_name()).run_in(env, async=True)
+                    self.view.window().show_input_panel("Rename to : ",
+                                                        '',
+                                                        make_request, None, None)
+            else:
+                env.status_message('Select a single region to extract the symbol to rename')

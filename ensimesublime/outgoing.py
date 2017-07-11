@@ -114,8 +114,8 @@ class RefactorRequest(RpcRequest):
 class AddImportRefactorDesc(RefactorRequest):
     def __init__(self, file, name):
         super(AddImportRefactorDesc, self).__init__()
-        self.file = str(file)
-        self.name = str(name)
+        self.file = file
+        self.name = name
 
     def json_repr(self):
         return {"ref_type": "RefactorReq",
@@ -128,11 +128,30 @@ class AddImportRefactorDesc(RefactorRequest):
 class OrganiseImports(RefactorRequest):
     def __init__(self, file):
         super(OrganiseImports, self).__init__()
-        self.file = str(file)
+        self.file = file
 
     def json_repr(self):
         return {"ref_type": "RefactorReq",
                 "ref_params": {"typehint": "OrganiseImportsRefactorDesc",
+                               "file": self.file,
+                               },
+                "ref_options": {"interactive": False}}
+
+
+class RenameRefactorDesc(RefactorRequest):
+    def __init__(self, new_name, start, end, file):
+        super(RenameRefactorDesc, self).__init__()
+        self.new_name = new_name
+        self.start = start
+        self.end = end
+        self.file = file
+
+    def json_repr(self):
+        return {"ref_type": "RefactorReq",
+                "ref_params": {"typehint": "RenameRefactorDesc",
+                               "newName": self.new_name,
+                               "start": self.start,
+                               "end": self.end,
                                "file": self.file,
                                },
                 "ref_options": {"interactive": False}}

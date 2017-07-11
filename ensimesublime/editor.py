@@ -95,7 +95,7 @@ class Editor(object):
         stylesheet = '''
             <style>
                 .warn{
-                    background-color: color(var(--background) blend(yellow 50%));
+                    background-color: color(var(--background) blend(yellow 75%));
                 }
                 div.error, div.warn {
                     padding: 0.4rem 0 0.4rem 0.7rem;
@@ -103,7 +103,8 @@ class Editor(object):
                     border-radius: 2px;
                 }
                 div.error span.message, div.warn span.message {
-                    padding-right: 0.7rem;
+                    padding-right: 0.5rem;
+                    font-size: 0.7rem;
                 }
                 div.error a, div.warn a {
                     text-decoration: inherit;
