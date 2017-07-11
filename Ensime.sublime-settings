@@ -22,9 +22,11 @@
 
   // stylistic settings
   "error_highlight": true,
-  "error_underline": false,
   "error_scope": "invalid.illegal",
   "error_icon": "",
+  "warning_highlight": false,
+  "warning_scope": "invalid.illegal",
+  "warning_icon": "",
   "breakpoint_scope": "ensime.breakpoint",
   "breakpoint_icon": "circle",
   "debugfocus_scope": "ensime.debugfocus",

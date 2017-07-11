@@ -17,7 +17,8 @@
             "children":
             [
               { "caption": "Go to definition", "command": "ensime_go_to_definition" },
-              { "caption": "Add import", "command": "ensime_add_import" }
+              { "caption": "Add import", "command": "ensime_add_import" },
+              { "caption": "Organise imports", "command": "ensime_organise_imports" }
             ]
           }
         ]

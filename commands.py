@@ -8,7 +8,7 @@ from core import EnsimeWindowCommand, EnsimeTextCommand
 from env import getEnvironment
 from launcher import EnsimeLauncher
 from client import EnsimeClient
-from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq
+from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq, OrganiseImports
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -43,7 +43,7 @@ class EnsimeShowErrors(EnsimeWindowCommand):
 
     def run(self):
         self.env.editor.show_errors = True
-        self.env.editor.update_phantoms()
+        self.env.editor.redraw_all_highlights()
 
 
 class EnsimeEventListener(sublime_plugin.EventListener):
@@ -51,14 +51,13 @@ class EnsimeEventListener(sublime_plugin.EventListener):
         env = getEnvironment(view.window())
         if env:
             if env.is_connected():
-                TypeCheckFilesReq([view.file_name()]).run_in(env)
+                TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
 
     def on_post_save(self, view):
         env = getEnvironment(view.window())
         if env:
             if env.is_connected():
-                TypeCheckFilesReq([view.file_name()]).run_in(env)
-                env.editor.show_errors = True
+                TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
 
 
 class EnsimeGoToDefinition(EnsimeTextCommand):
@@ -81,4 +80,13 @@ class EnsimeAddImport(EnsimeTextCommand):
                 self.view.run_command('save')
             ImportSuggestionsReq(pos,
                                  self.view.file_name(),
-                                 self.view.substr(self.view.word(pos))).run_in(env)
+                                 self.view.substr(self.view.word(pos))).run_in(env, async=True)
+
+
+class EnsimeOrganiseImports(EnsimeTextCommand):
+    def run(self, edit):
+        env = getEnvironment(self.view.window())
+        if env and env.is_connected():
+            if self.view.is_dirty():
+                self.view.run_command('save')
+            OrganiseImports(self.view.file_name()).run_in(env, async=True)

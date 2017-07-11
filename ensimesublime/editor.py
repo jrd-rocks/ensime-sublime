@@ -11,7 +11,7 @@ ENSIME_WATCHES_VIEW = "Ensime watches"
 
 # region names
 ENSIME_ERROR_OUTLINE_REGION = "ensime-error"
-ENSIME_ERROR_UNDERLINE_REGION = "ensime-error-underline"
+ENSIME_WARNING_OUTLINE_REGION = "ensime-warning"
 ENSIME_BREAKPOINT_REGION = "ensime-breakpoint"
 ENSIME_DEBUGFOCUS_REGION = "ensime-debugfocus"
 ENSIME_STACKFOCUS_REGION = "ensime-stackfocus"
@@ -39,7 +39,7 @@ class Editor(object):
         if view is None:
             view = self.w.active_view()
         view.erase_regions(ENSIME_ERROR_OUTLINE_REGION)
-        view.erase_regions(ENSIME_ERROR_UNDERLINE_REGION)
+        view.erase_regions(ENSIME_WARNING_OUTLINE_REGION)
         # don't erase breakpoints, they should be permanent regardless of whether ensime is running or not
         # view.erase_regions(ENSIME_BREAKPOINT_REGION)
         # view.erase_regions(ENSIME_DEBUGFOCUS_REGION)
@@ -60,19 +60,19 @@ class Editor(object):
         if view is None:
             view = self.w.active_view()
         view.erase_regions(ENSIME_ERROR_OUTLINE_REGION)
-        view.erase_regions(ENSIME_ERROR_UNDERLINE_REGION)
+        view.erase_regions(ENSIME_WARNING_OUTLINE_REGION)
 
         relevant_notes = self.notes_storage.for_file(view.file_name())
 
-        # Underline specific error range
-        underlines = [sublime.Region(note.start, note.end) for note in relevant_notes]
-        if self.settings.get("error_highlight") and self.settings.get("error_underline"):
+        # stippled underline the warnings
+        warnings = [view.full_line(note.start) for note in relevant_notes if note.severity == "NoteWarn"]
+        if self.settings.get("warning_highlight"):
             view.add_regions(
-                ENSIME_ERROR_UNDERLINE_REGION,
-                underlines + view.get_regions(ENSIME_ERROR_UNDERLINE_REGION),
-                self.settings.get("error_scope"),
-                sublime.DRAW_EMPTY_AS_OVERWRITE)
-
+                ENSIME_WARNING_OUTLINE_REGION,
+                warnings + view.get_regions(ENSIME_WARNING_OUTLINE_REGION),
+                self.settings.get("warning_scope"),
+                self.settings.get("warning_icon"),
+                sublime.DRAW_NO_FILL)
         # Outline entire errored line
         errors = [view.full_line(note.start) for note in relevant_notes if note.severity == "NoteError"]
         if self.settings.get("error_highlight"):
@@ -135,7 +135,6 @@ class Editor(object):
             errs = self.notes_storage.for_file(view.file_name())
 
             for note in errs:
-                print(note.severity)
                 if note.severity == "NoteInfo":
                     continue
                 clss = "error" if note.severity == "NoteError" else "warn"
@@ -160,6 +159,28 @@ class Editor(object):
 
     def on_phantom_navigate(self, url):
         self.hide_phantoms()
+
+    def reload_file(self, view=None):
+        if view:
+            original_size = view.size()
+            original_pos = view.sel()[0].begin()
+            # Load changes
+            view.run_command("revert")
+
+            # Wait until view loaded then move cursor to original position
+            def on_load():
+                if view.is_loading():
+                    # Wait again
+                    sublime.set_timeout(on_load, 50)
+                else:
+                    size_diff = view.size() - original_size
+                    new_pos = original_pos + size_diff
+                    view.sel().clear()
+                    view.sel().add(sublime.Region(new_pos))
+                    view.show(new_pos)
+                    view.run_command("save")
+
+            on_load()
 
     # def redraw_status(self, view, custom_status=None):
     #     if custom_status:

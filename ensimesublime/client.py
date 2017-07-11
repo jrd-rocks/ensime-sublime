@@ -6,6 +6,7 @@ import json
 from threading import Thread
 
 import websocket
+from functools import partial as bind
 
 from protocol import ProtocolHandler
 from util import catch
@@ -82,6 +83,7 @@ class EnsimeClient(ProtocolHandler):
 
                 with catch(websocket.WebSocketException, log_and_close):
                     result = self.ws.recv()
+                    print(result)
                     if result:
                         try:
                             _json = json.loads(result)
@@ -177,7 +179,7 @@ class EnsimeClient(ProtocolHandler):
         Returns True or False based on wether a response for that call_id was found."""
         start, now = time.time(), time.time()
         while should_wait and (call_id not in self.responses) and (now - start) < timeout:
-                time.sleep(0.25)
+                time.sleep(0.5)
                 now = time.time()
         if call_id not in self.responses:
             print(self.responses)

@@ -84,7 +84,7 @@ class RefactorRequest(RpcRequest):
     def __init__(self):
         super(RefactorRequest, self).__init__()
 
-    def run_in(self, env, async=True):
+    def run_in(self, env, async=False):
         call_id = self.send_refactor_request(self.json_repr(), env.client, async)
         if not async:
             got_response = env.client.get_response(call_id)
@@ -108,18 +108,31 @@ class RefactorRequest(RpcRequest):
         client.refactorings[client.refactor_id] = f
         client.refactor_id += 1
         request.update(ref_options)
-        self.send_request(request, client, async)
+        return self.send_request(request, client, async)
 
 
 class AddImportRefactorDesc(RefactorRequest):
     def __init__(self, file, name):
-        self.file = file
-        self.name = name
         super(AddImportRefactorDesc, self).__init__()
+        self.file = str(file)
+        self.name = str(name)
 
     def json_repr(self):
-        return {'ref_type': "RefactorReq",
-                'ref_params': {"typehint": "AddImportRefactorDesc",
+        return {"ref_type": "RefactorReq",
+                "ref_params": {"typehint": "AddImportRefactorDesc",
                                "file": self.file,
                                "qualifiedName": self.name},
-                'ref_options': {"interactive": False}}
+                "ref_options": {"interactive": False}}
+
+
+class OrganiseImports(RefactorRequest):
+    def __init__(self, file):
+        super(OrganiseImports, self).__init__()
+        self.file = str(file)
+
+    def json_repr(self):
+        return {"ref_type": "RefactorReq",
+                "ref_params": {"typehint": "OrganiseImportsRefactorDesc",
+                               "file": self.file,
+                               },
+                "ref_options": {"interactive": False}}

@@ -1,10 +1,11 @@
 # coding: utf-8
-from threading import Thread
-import time
+import sublime
+
+from functools import partial as bind
 
 from util import catch
 from notes import Note
-from outgoing import AddImportRefactorDesc
+from outgoing import AddImportRefactorDesc, TypeCheckFilesReq
 from patch import fromfile
 
 
@@ -68,7 +69,11 @@ class ProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_analyzer_ready(self, call_id, payload):
-        raise NotImplementedError()
+        files = []
+        for view in self.env.window.views():
+            files.append(view.file_name())
+        TypeCheckFilesReq(files).run_in(self.env, async=True)
+        self.env.editor.show_errors = True
 
     def handle_scala_notes(self, call_id, payload):
         self.env.notes_storage.append(map(Note, payload['notes']))
@@ -100,9 +105,10 @@ class ProtocolHandler(object):
         def do_refactor(choice):
             if choice > -1:
                 file_name = self.call_options[call_id].get('file_name')
-                AddImportRefactorDesc(file_name, imports[choice]).run_in(self.env)
+                # request is async, file is reverted when patch is received and applied
+                AddImportRefactorDesc(file_name, imports[choice]).run_in(self.env, async=True)
 
-        self.env.window.show_quick_panel(imports, do_refactor)
+        sublime.set_timeout(bind(self.env.window.show_quick_panel, imports, do_refactor), 0)
 
     def handle_package_info(self, call_id, payload):
         raise NotImplementedError()
@@ -124,14 +130,14 @@ class ProtocolHandler(object):
         view = self.env.window.open_file(f)
 
         # either has line or offset
-        def _scroll_once_loaded(sleep_t=1, attempts=10):
+        def _scroll_once_loaded(attempts=10):
             offset = decl_pos.get("offset")
             line = decl_pos.get("line")
             if not offset and not line:
                 self.env.logger.debug("No offset or line number were found.")
                 return
             while view.is_loading() and attempts:
-                time.sleep(sleep_t)
+                sublime.set_timeout(_scroll_once_loaded, 100)
                 attempts -= 1
             if not view.is_loading():
                 if not offset:
@@ -141,9 +147,7 @@ class ProtocolHandler(object):
             else:
                 self.env.logger.debug("Scrolling failed as the view wasn't ready.")
 
-        thread = Thread(name='queue-poller', target=_scroll_once_loaded)
-        thread.daemon = True
-        thread.start()
+        sublime.set_timeout(_scroll_once_loaded, 0)
 
     def handle_string_response(self, call_id, payload):
         raise NotImplementedError()
@@ -155,13 +159,14 @@ class ProtocolHandler(object):
         raise NotImplementedError()
 
     def apply_refactor(self, call_id, payload):
-        supported_refactorings = ["AddImport"]
+        supported_refactorings = ["AddImport", "OrganizeImports"]
         if payload["refactorType"]["typehint"] in supported_refactorings:
             diff_file = payload["diff"]
             patch_set = fromfile(diff_file)
         result = patch_set.apply(0, "/")
         if result:
-            # self.reload_file()  #not implemented
+            file = self.refactorings[payload['procedureId']]
+            sublime.set_timeout(bind(self.env.editor.reload_file, self.env.window.find_open_file(file)), 0)
             self.env.logger.info("Refactoring succeeded, patch file: {}"
                                  .format(diff_file))
             self.env.status_message("Refactoring succeeded")
