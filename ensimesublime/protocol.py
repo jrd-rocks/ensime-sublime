@@ -159,7 +159,7 @@ class ProtocolHandler(object):
         raise NotImplementedError()
 
     def apply_refactor(self, call_id, payload):
-        supported_refactorings = ["AddImport", "OrganizeImports", "Rename"]
+        supported_refactorings = ["AddImport", "OrganizeImports", "Rename", "InlineLocal"]
         if payload["refactorType"]["typehint"] in supported_refactorings:
             diff_file = payload["diff"]
             patch_set = fromfile(diff_file)

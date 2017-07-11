@@ -155,3 +155,20 @@ class RenameRefactorDesc(RefactorRequest):
                                "file": self.file,
                                },
                 "ref_options": {"interactive": False}}
+
+
+class InlineLocalRefactorDesc(RefactorRequest):
+    def __init__(self, start, end, file):
+        super(InlineLocalRefactorDesc, self).__init__()
+        self.start = start
+        self.end = end
+        self.file = file
+
+    def json_repr(self):
+        return {"ref_type": "RefactorReq",
+                "ref_params": {"typehint": "InlineLocalRefactorDesc",
+                               "start": self.start,
+                               "end": self.end,
+                               "file": self.file,
+                               },
+                "ref_options": {"interactive": False}}

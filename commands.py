@@ -8,12 +8,11 @@ from core import EnsimeWindowCommand, EnsimeTextCommand
 from env import getEnvironment
 from launcher import EnsimeLauncher
 from client import EnsimeClient
-from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq, OrganiseImports, RenameRefactorDesc
+from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq, OrganiseImports, RenameRefactorDesc, InlineLocalRefactorDesc
 
 
 class EnsimeStartup(EnsimeWindowCommand):
     def is_enabled(self):
-        # should we check self.env.valid ?
         return bool(self.env and not self.env.is_running())
 
     def run(self):
@@ -61,7 +60,7 @@ class EnsimeEventListener(sublime_plugin.EventListener):
 
 
 class EnsimeGoToDefinition(EnsimeTextCommand):
-    def is_enabled(self, args):
+    def is_enabled(self):
         env = getEnvironment(sublime.active_window())
         return bool(env and env.is_connected())
 
@@ -76,7 +75,7 @@ class EnsimeGoToDefinition(EnsimeTextCommand):
 
 
 class EnsimeAddImport(EnsimeTextCommand):
-    def is_enabled(self, args):
+    def is_enabled(self):
         env = getEnvironment(sublime.active_window())
         return bool(env and env.is_connected())
 
@@ -92,7 +91,7 @@ class EnsimeAddImport(EnsimeTextCommand):
 
 
 class EnsimeOrganiseImports(EnsimeTextCommand):
-    def is_enabled(self, args):
+    def is_enabled(self):
         env = getEnvironment(sublime.active_window())
         return bool(env and env.is_connected())
 
@@ -105,7 +104,7 @@ class EnsimeOrganiseImports(EnsimeTextCommand):
 
 
 class EnsimeRename(EnsimeTextCommand):
-    def is_enabled(self, args):
+    def is_enabled(self):
         env = getEnvironment(sublime.active_window())
         return bool(env and env.is_connected())
 
@@ -128,3 +127,18 @@ class EnsimeRename(EnsimeTextCommand):
                                                         make_request, None, None)
             else:
                 env.status_message('Select a single region to extract the symbol to rename')
+
+
+class EnsimeInlineLocal(EnsimeTextCommand):
+    def is_enabled(self):
+        env = getEnvironment(sublime.active_window())
+        return bool(env and env.is_connected())
+
+    def run(self, edit, target=None):
+        env = getEnvironment(self.view.window())
+        if env and env.is_connected():
+            pos = int(target or self.view.sel()[0].begin())
+            word = self.view.substr(self.view.word(pos))
+            InlineLocalRefactorDesc(pos,
+                                    pos + len(word),
+                                    self.view.file_name()).run_in(env, async=True)

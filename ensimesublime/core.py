@@ -1,8 +1,7 @@
 import sublime
 import sublime_plugin
 
-from paths import relative_path, is_subpath
-import env
+from env import getEnvironment, getOrCreateNew
 
 
 class EnsimeCommon(object):
@@ -16,7 +15,7 @@ class EnsimeCommon(object):
             self.v = owner
         else:
             raise Exception("unsupported owner of type: " + str(type(owner)))
-        self.env = env.getOrCreateNew(self.w)
+        self.env = getOrCreateNew(self.w)
 
     def is_valid(self):
         return bool(self.env and self.env.valid)
