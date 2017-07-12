@@ -36,7 +36,6 @@ class ProtocolHandler(object):
         self.handlers["FullTypeCheckCompleteEvent"] = self.handle_typecheck_complete
         # self.handlers["StringResponse"] = self.handle_string_response
         # self.handlers["CompletionInfoList"] = self.handle_completion_info_list
-        # self.handlers["TypeInspectInfo"] = self.handle_type_inspect
         # self.handlers["SymbolSearchResults"] = self.handle_symbol_search
         # self.handlers["DebugOutputEvent"] = self.handle_debug_output
         # self.handlers["DebugBreakEvent"] = self.handle_debug_break

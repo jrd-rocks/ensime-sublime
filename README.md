@@ -1,5 +1,5 @@
 ## Introduction
-This is a beta write of the new enisme plugin for sublime-text 3. The documentation for the stable ensime-sublime plugin is at http://ensime.org/editors/sublime/
+This is a beta write of the new enisme plugin for sublime-text 3. The documentation for the stable ensime-sublime plugin is at http://ensime.org/editors/sublime/ and github repository at https://github.com/ensime/ensime-sublime.
 
 ## Setup
 If you have been using the _Ensime_ plugin for sublime-text, first remove it through _Package Control_. This can be done by the following steps:
@@ -31,7 +31,7 @@ You may now open up your scala project in sublime-text. This can be done through
 **If you haven't yet created any _.ensime_ file for your project, that's what you must do next. Instructions for doing so can be found at http://ensime.org/build_tools/sbt/**
 
 **NOTE**
-If you have been using an old version of ensime, update ensime before trying out this plugin. The version is decided through line _addSbtPlugin("org.ensime" % "sbt-ensime" % "**version**")_  in file _~/.sbt/0.13/plugins/plugins.sbt_
+If you have been using an old version of ensime, update ensime before trying out this plugin.
 
 ## Startup
 The ensime server can the be started by going to _'Tools' -> 'Ensime' -> 'Maintainence' -> 'Startup'_ 

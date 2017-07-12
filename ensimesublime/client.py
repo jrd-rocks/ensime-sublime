@@ -83,7 +83,6 @@ class EnsimeClient(ProtocolHandler):
 
                 with catch(websocket.WebSocketException, log_and_close):
                     result = self.ws.recv()
-                    print(result)
                     if result:
                         try:
                             _json = json.loads(result)
