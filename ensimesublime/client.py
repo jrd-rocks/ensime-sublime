@@ -107,7 +107,8 @@ class EnsimeClient(ProtocolHandler):
                                     handle_now()
                                 else:
                                     handle_later()
-            time.sleep(sleep_t)
+                    else:
+                        time.sleep(sleep_t)
 
     def connect_when_ready(self, timeout, fallback):
         """Given a maximum timeout, waits for the http port to be written.

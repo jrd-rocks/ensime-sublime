@@ -2,6 +2,7 @@
 
 from py import path
 from pytest import raises
+import sexpdata
 
 from config import ProjectConfig
 
@@ -21,3 +22,14 @@ def test_is_immutable():
     with raises(TypeError) as excinfo:
         config['scala-version'] = 'bogus'
     assert 'does not support item assignment' in str(excinfo.value)
+
+
+def test_is_dict_like():
+    assert set(config.keys()) == set(['name', 'scala-version', 'list', 'nest'])
+    assert len(config) == 4
+
+
+def test_fails_when_given_invalid_config():
+    badconf = path.local(__file__).dirpath() / 'resources' / 'broken.conf'
+    with raises(sexpdata.ExpectClosingBracket):
+        ProjectConfig(badconf.strpath)
