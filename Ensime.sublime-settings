@@ -25,7 +25,7 @@
   "error_scope": "invalid.illegal",
   "error_icon": "",
   "warning_highlight": false,
-  "warning_scope": "invalid.illegal",
+  "warning_scope": "invalid.deprecated",
   "warning_icon": "",
   "breakpoint_scope": "ensime.breakpoint",
   "breakpoint_icon": "circle",

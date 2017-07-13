@@ -3,11 +3,11 @@ import sublime
 
 from functools import partial as bind
 
-from util import catch
+from util import catch, Pretty
 from notes import Note
 from outgoing import AddImportRefactorDesc, TypeCheckFilesReq
 from patch import fromfile
-
+from config import feedback
 
 class ProtocolHandler(object):
     """Mixin for common behavior of handling ENSIME protocol responses.
@@ -17,6 +17,7 @@ class ProtocolHandler(object):
     """
 
     def __init__(self):
+        self.server_version = "unknown"
         self.handlers = {}
         self.register_responses_handlers()
 
@@ -25,6 +26,8 @@ class ProtocolHandler(object):
 
         A handler must accept only one parameter: `payload`.
         """
+        self.handlers["ConnectionInfo"] = self.handle_connection_info
+        self.handlers["SendBackgroundMessageEvent"] = self.handle_background_message
         self.handlers["SymbolInfo"] = self.handle_symbol_info
         self.handlers["IndexerReadyEvent"] = self.handle_indexer_ready
         self.handlers["AnalyzerReadyEvent"] = self.handle_analyzer_ready
@@ -54,7 +57,8 @@ class ProtocolHandler(object):
         handler = self.handlers.get(typehint)
 
         def feature_not_supported(m):
-            self.env.logger.error("Not supported feature {f}".format(f=m))
+            msg = feedback["handler_not_implemented"]
+            self.env.logger.error(msg.format(typehint, self.server_version))
             # msg = feedback["handler_not_implemented"]
             # sublime.error_message(msg.format(typehint, self.launcher.ensime_version))
 
@@ -62,12 +66,21 @@ class ProtocolHandler(object):
             with catch(NotImplementedError, feature_not_supported):
                 handler(call_id, payload)
         else:
-            self.env.logger.warning('Response has not been handled: %s', payload)
+            self.env.logger.warning('Response has not been handled: %s', Pretty(payload))
+
+    def handle_connection_info(self, call_id, payload):
+        self.server_version = payload.get("version", "unknown")
+
+    def handle_background_message(self, call_id, payload):
+        self.env.logger.info("{} : {}"
+                             .format(payload.get("code", "unknown code"),
+                                     payload.get("detail", "no detail")))
 
     def handle_indexer_ready(self, call_id, payload):
-        raise NotImplementedError()
+        self.env.logger.info("Indexer is ready.")
 
     def handle_analyzer_ready(self, call_id, payload):
+        self.env.logger.info("Analyzer is ready.")
         files = []
         for view in self.env.window.views():
             files.append(view.file_name())

@@ -8,6 +8,7 @@ import sexpdata
 from util import Util
 
 LOG_FORMAT = '%(levelname)-8s <%(asctime)s> (%(filename)s:%(lineno)d) - %(message)s'
+CONSOLE_LOG_FORMAT = '| Ensime | %(levelname)-8s <%(asctime)s> - %(message)s'
 
 gconfig = {
     "ensime_server": "ws://127.0.0.1:{}/{}",

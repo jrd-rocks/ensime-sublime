@@ -11,7 +11,7 @@ import dotensime
 from util import Util
 from notes import NotesStorage
 from editor import Editor
-from config import LOG_FORMAT
+from config import LOG_FORMAT, CONSOLE_LOG_FORMAT
 
 env_lock = threading.RLock()
 # dictionary from window to it's EnsimeEnvironment
@@ -82,6 +82,7 @@ class _EnsimeEnvironment(object):
     def create_logger(self, debug, log_file):
         logger = logging.getLogger("ensime")
         file_log_formatter = logging.Formatter(LOG_FORMAT)
+        console_log_formatter = logging.Formatter(CONSOLE_LOG_FORMAT)
         # console_log_formatter = logging.Formatter("[Ensime] %(asctime)s [%(levelname)-5.5s]  %(message)s")
 
         logger.handlers.clear()
@@ -92,9 +93,10 @@ class _EnsimeEnvironment(object):
         file_handler = WatchedFileHandler(log_file)
         file_handler.setFormatter(file_log_formatter)
         logger.addHandler(file_handler)
-        # console_handler = logging.StreamHandler()
-        # console_handler.setFormatter(console_log_formatter)
-        # logger.addHandler(console_handler)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(console_log_formatter)
+        logger.addHandler(console_handler)
 
         if debug:
             logger.setLevel(logging.DEBUG)

@@ -48,15 +48,18 @@ class EnsimeShowErrors(EnsimeWindowCommand):
 class EnsimeEventListener(sublime_plugin.EventListener):
     def on_load(self, view):
         env = getEnvironment(view.window())
-        if env:
-            if env.is_connected():
-                TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
+        if env and env.is_connected():
+            TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
 
     def on_post_save(self, view):
         env = getEnvironment(view.window())
-        if env:
-            if env.is_connected():
-                TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
+        if env and env.is_connected():
+            TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
+
+    def on_query_completions(self, view, prefix, locations):
+        env = getEnvironment(view.window())
+        if env and env.is_connected():
+            pass
 
 
 class EnsimeGoToDefinition(EnsimeTextCommand):

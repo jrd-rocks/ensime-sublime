@@ -1,5 +1,7 @@
 import json
 
+from util import Pretty
+
 
 class RpcRequest(object):
 
@@ -10,7 +12,7 @@ class RpcRequest(object):
         message = {'callId': client.call_id, 'req': request}
         client.call_options[client.call_id] = {'async': async}
         client.call_options[client.call_id].update(self.call_options())
-        client.env.logger.info('send_request: %s', message)
+        client.env.logger.info('send_request: %s', Pretty(message))
         client.send(json.dumps(message))
 
         call_id = client.call_id
@@ -78,6 +80,30 @@ class ImportSuggestionsReq(RpcRequest):
 
     def call_options(self):
         return {'file_name': self.file}
+
+
+class CompletionsReq(RpcRequest):
+    def __init__(self, point, file, contents, max_results=100, case_sensitive=True, reLoad=False):
+        super(CompletionsReq, self).__init__()
+        self.point = point
+        self.file_info = self._file_info(file, contents)
+        self.case_sensitive = case_sensitive
+        self.max_results = max_results
+        self.reload = reLoad
+
+    def _file_info(self, file, contents):
+        """Message fragment for ENSIME ``fileInfo`` field, from current file."""
+        return {
+            'file': file,
+            'contents': contents,
+        }
+
+    def json_repr(self):
+        return {"point": self.point, "maxResults": self.max_results,
+                "typehint": "CompletionsReq",
+                "caseSens": self.case_sensitive,
+                "fileInfo": self.file_info,
+                "reload": self.reLoad}
 
 
 class RefactorRequest(RpcRequest):

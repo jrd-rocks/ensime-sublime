@@ -27,5 +27,6 @@ def load(window):
 {typ} : {val}""".format(loc=str(f), typ=str(exc_type), val=str(exc_val)))
     raise DotEnsimeNotFound(errno.ENOENT,
                             """Ensime has failed to find a .ensime file within this project.
-Create a .ensime file by running'sbt ensimeConfig' or equivalent for your build tool.\n""",
+Create a .ensime file by running'sbt ensimeConfig' or equivalent for your build tool.
+We looked at : """,
                             window.folders())

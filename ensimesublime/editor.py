@@ -78,7 +78,7 @@ class Editor(object):
         stylesheet = '''
             <style>
                 .warn{
-                    background-color: color(var(--background) blend(yellow 75%));
+                    background-color: color(var(--background) blend(yellow 40%));
                 }
                 div.error, div.warn {
                     padding: 0.4rem 0 0.4rem 0.7rem;

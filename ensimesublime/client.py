@@ -9,7 +9,7 @@ import websocket
 from functools import partial as bind
 
 from protocol import ProtocolHandler
-from util import catch
+from util import catch, Pretty
 from errors import LaunchError
 from outgoing import ConnectionInfoRequest
 from config import gconfig
@@ -176,7 +176,7 @@ class EnsimeClient(ProtocolHandler):
         """Gets a response with the specified call_id.
         If should_wait is set to true waits for the response to appear
         in the `responses` map for time specified by timeout.
-        Returns True or False based on wether a response for that call_id was found."""
+        Returns the payload or None based on wether a response for that call_id was found."""
         start, now = time.time(), time.time()
         while should_wait and (call_id not in self.responses) and (now - start) < timeout:
                 time.sleep(0.5)
@@ -184,13 +184,13 @@ class EnsimeClient(ProtocolHandler):
         if call_id not in self.responses:
             print(self.responses)
             self.env.logger.warning('no reply from server for %ss', timeout)
-            return False
+            return None
         result = self.responses[call_id]
         self.env.logger.debug('result received\n%s', result)
         if result["payload"]:
             self.handle_incoming_response(call_id, result["payload"])
         del self.responses[call_id]
-        return True
+        return result["payload"]
 
     def connect_ensime_server(self):
         """Start initial connection with the server.
@@ -219,7 +219,7 @@ class EnsimeClient(ProtocolHandler):
                 self.ws = websocket.create_connection(self.ensime_server, **options)
             self.number_try_connection -= 1
             got_response = ConnectionInfoRequest().run_in(self.env)  # confirm response
-            return got_response
+            return bool(got_response is not None)
         else:
             # If it hits this, number_try_connection is 0
             disable_completely(None)
