@@ -8,7 +8,13 @@ from core import EnsimeWindowCommand, EnsimeTextCommand
 from env import getEnvironment
 from launcher import EnsimeLauncher
 from client import EnsimeClient
-from outgoing import TypeCheckFilesReq, SymbolAtPointReq, ImportSuggestionsReq, OrganiseImports, RenameRefactorDesc, InlineLocalRefactorDesc
+from outgoing import (TypeCheckFilesReq,
+                      SymbolAtPointReq,
+                      ImportSuggestionsReq,
+                      OrganiseImports,
+                      RenameRefactorDesc,
+                      InlineLocalRefactorDesc,
+                      CompletionsReq)
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -59,7 +65,24 @@ class EnsimeEventListener(sublime_plugin.EventListener):
     def on_query_completions(self, view, prefix, locations):
         env = getEnvironment(view.window())
         if env and env.is_connected():
-            pass
+            if (env.editor.ignore_prefix and prefix.startswith(env.editor.ignore_prefix)):
+                return []
+            else:
+                env.editor.ignore_prefix = None
+
+            contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
+                        else None)
+            response = CompletionsReq(locations[0],
+                                      view.file_name(),
+                                      contents).run_in(env, async=False)
+
+            if response is None:
+                return ([],
+                        sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
+                env.editor.ignore_prefix = prefix
+            else:
+                return (env.editor.suggestions,
+                        sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
 
 
 class EnsimeGoToDefinition(EnsimeTextCommand):

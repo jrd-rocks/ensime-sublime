@@ -170,8 +170,9 @@ class ProtocolHandler(object):
         self.env.logger.debug('handle_completion_info_list: in')
         # filter out completions without `typeInfo` field to avoid server bug. See #324
         completions = [c for c in payload["completions"] if "typeInfo" in c]
-        self.editor.suggestions = [completion_to_suggest(c) for c in completions]
-        self.env.logger.debug('handle_completion_info_list: {}'.format(Pretty(self.suggestions)))
+        self.env.editor.suggestions = [completion_to_suggest(c) for c in completions]
+        self.env.logger.debug('handle_completion_info_list: {}'
+                              .format(Pretty(self.env.editor.suggestions)))
 
     def handle_type_inspect(self, call_id, payload):
         raise NotImplementedError()

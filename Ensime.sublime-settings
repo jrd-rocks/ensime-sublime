@@ -70,5 +70,6 @@
   "min_ensime_server_version": "0.9.8.6",
 
   //sublime settings 
-  "show_definitions": false
+  "show_definitions": false,
+  "auto_complete": false,
 }

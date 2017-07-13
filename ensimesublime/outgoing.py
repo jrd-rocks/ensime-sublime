@@ -3,7 +3,7 @@ import json
 from util import Pretty
 
 DEFAULT_TIMEOUT = 10
-COMPLETION_TIMEOUT = 3
+COMPLETION_TIMEOUT = 5
 
 
 class RpcRequest(object):
@@ -87,13 +87,13 @@ class ImportSuggestionsReq(RpcRequest):
 
 
 class CompletionsReq(RpcRequest):
-    def __init__(self, point, file, contents, max_results=100, case_sensitive=True, reLoad=False):
+    def __init__(self, point, file, contents=None, max_results=100, case_sensitive=True, reLoad=False):
         super(CompletionsReq, self).__init__()
         self.point = point
         self.file_info = self._file_info(file, contents)
         self.case_sensitive = case_sensitive
         self.max_results = max_results
-        self.reload = reLoad
+        self.reLoad = reLoad
         self.timeout = COMPLETION_TIMEOUT
 
     def _file_info(self, file, contents):

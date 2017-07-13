@@ -119,6 +119,9 @@ class _EnsimeEnvironment(object):
         # plugin-wide stuff (immutable)
         self.settings = sublime.load_settings("Ensime.sublime-settings")
         debug = self.settings.get("debug", False)
+        s = sublime.load_settings("Preferences.sublime-settings")
+        s.set("auto_complete", False)
+        sublime.save_settings("Preferences.sublime-settings")
         # instance-specific stuff (immutable)
         self.config = dotensime.load(self.window)
         self.project_root = self.config['root-dir']

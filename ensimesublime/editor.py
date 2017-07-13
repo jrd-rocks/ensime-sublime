@@ -25,6 +25,7 @@ class Editor(object):
         self.phantom_sets_by_buffer = {}
         self.show_errors = False
         self.suggestions = []
+        self.ignore_prefix = None
 
     def colorize(self, view=None):
         if view is None:
