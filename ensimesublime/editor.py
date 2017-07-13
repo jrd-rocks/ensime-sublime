@@ -26,6 +26,7 @@ class Editor(object):
         self.show_errors = False
         self.suggestions = []
         self.ignore_prefix = None
+        self.current_prefix = None
 
     def colorize(self, view=None):
         if view is None:

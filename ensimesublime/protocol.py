@@ -167,12 +167,30 @@ class ProtocolHandler(object):
 
     def handle_completion_info_list(self, call_id, payload):
         """Handler for a completion response."""
-        self.env.logger.debug('handle_completion_info_list: in')
-        # filter out completions without `typeInfo` field to avoid server bug. See #324
-        completions = [c for c in payload["completions"] if "typeInfo" in c]
-        self.env.editor.suggestions = [completion_to_suggest(c) for c in completions]
-        self.env.logger.debug('handle_completion_info_list: {}'
-                              .format(Pretty(self.env.editor.suggestions)))
+        prefix = payload.get("prefix")
+        if (self.env.editor.current_prefix and
+                self.env.editor.current_prefix == prefix):
+
+            def _hack(prefix):
+                if (sublime.active_window().active_view().is_auto_complete_visible() and
+                        self.env.editor.current_prefix == prefix):
+                    sublime.active_window().run_command("hide_auto_complete")
+                    completions = [c for c in payload["completions"] if "typeInfo" in c]
+                    self.env.editor.suggestions = [completion_to_suggest(c) for c in completions]
+
+                    def hack2():
+                        sublime.active_window().active_view().run_command("auto_complete")
+                    sublime.set_timeout(hack2, 1)
+            sublime.set_timeout(bind(_hack, prefix), 0)
+
+        else:
+            self.env.editor.current_prefix = payload.get("prefix")
+            self.env.logger.debug('handle_completion_info_list: in')
+            # filter out completions without `typeInfo` field to avoid server bug. See #324
+            completions = [c for c in payload["completions"] if "typeInfo" in c]
+            self.env.editor.suggestions = [completion_to_suggest(c) for c in completions]
+            self.env.logger.debug('handle_completion_info_list: {}'
+                                  .format(Pretty(self.env.editor.suggestions)))
 
     def handle_type_inspect(self, call_id, payload):
         raise NotImplementedError()

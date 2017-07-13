@@ -70,17 +70,23 @@ class EnsimeEventListener(sublime_plugin.EventListener):
             else:
                 env.editor.ignore_prefix = None
 
+            if (env.editor.current_prefix and prefix == env.editor.current_prefix):
+                env.editor.current_prefix = None
+                return env.editor.suggestions
+
             contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
                         else None)
             response = CompletionsReq(locations[0],
                                       view.file_name(),
-                                      contents).run_in(env, async=False)
+                                      contents,
+                                      max_results=5).run_in(env, async=False)
 
             if response is None:
                 return ([],
                         sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
                 env.editor.ignore_prefix = prefix
             else:
+                CompletionsReq(locations[0], view.file_name(), contents).run_in(env, async=True)
                 return (env.editor.suggestions,
                         sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
 
