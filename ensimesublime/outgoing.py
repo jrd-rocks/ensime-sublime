@@ -2,6 +2,9 @@ import json
 
 from util import Pretty
 
+DEFAULT_TIMEOUT = 10
+COMPLETION_TIMEOUT = 3
+
 
 class RpcRequest(object):
 
@@ -22,9 +25,10 @@ class RpcRequest(object):
     def run_in(self, env, async=False):
         call_id = self.send_request(self.json_repr(), env.client, async)
         if not async:
-            got_response = env.client.get_response(call_id)
-            return got_response
-        return True
+            timeout = getattr(self, 'timeout', DEFAULT_TIMEOUT)
+            response = env.client.get_response(call_id, timeout=timeout)
+            return response
+        return None
 
     def json_repr(self):
         raise NotImplementedError
@@ -90,6 +94,7 @@ class CompletionsReq(RpcRequest):
         self.case_sensitive = case_sensitive
         self.max_results = max_results
         self.reload = reLoad
+        self.timeout = COMPLETION_TIMEOUT
 
     def _file_info(self, file, contents):
         """Message fragment for ENSIME ``fileInfo`` field, from current file."""

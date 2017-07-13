@@ -8,6 +8,8 @@ from notes import Note
 from outgoing import AddImportRefactorDesc, TypeCheckFilesReq
 from patch import fromfile
 from config import feedback
+from symbol_format import completion_to_suggest
+
 
 class ProtocolHandler(object):
     """Mixin for common behavior of handling ENSIME protocol responses.
@@ -38,7 +40,7 @@ class ProtocolHandler(object):
         # self.handlers["ArrowTypeInfo"] = self.show_type
         self.handlers["FullTypeCheckCompleteEvent"] = self.handle_typecheck_complete
         # self.handlers["StringResponse"] = self.handle_string_response
-        # self.handlers["CompletionInfoList"] = self.handle_completion_info_list
+        self.handlers["CompletionInfoList"] = self.handle_completion_info_list
         # self.handlers["SymbolSearchResults"] = self.handle_symbol_search
         # self.handlers["DebugOutputEvent"] = self.handle_debug_output
         # self.handlers["DebugBreakEvent"] = self.handle_debug_break
@@ -59,8 +61,7 @@ class ProtocolHandler(object):
         def feature_not_supported(m):
             msg = feedback["handler_not_implemented"]
             self.env.logger.error(msg.format(typehint, self.server_version))
-            # msg = feedback["handler_not_implemented"]
-            # sublime.error_message(msg.format(typehint, self.launcher.ensime_version))
+            self.env.status_message(msg.format(typehint, self.server_version))
 
         if handler:
             with catch(NotImplementedError, feature_not_supported):
@@ -165,7 +166,12 @@ class ProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_completion_info_list(self, call_id, payload):
-        raise NotImplementedError()
+        """Handler for a completion response."""
+        self.env.logger.debug('handle_completion_info_list: in')
+        # filter out completions without `typeInfo` field to avoid server bug. See #324
+        completions = [c for c in payload["completions"] if "typeInfo" in c]
+        self.editor.suggestions = [completion_to_suggest(c) for c in completions]
+        self.env.logger.debug('handle_completion_info_list: {}'.format(Pretty(self.suggestions)))
 
     def handle_type_inspect(self, call_id, payload):
         raise NotImplementedError()

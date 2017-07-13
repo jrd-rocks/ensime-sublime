@@ -24,6 +24,7 @@ class Editor(object):
         self.notes_storage = notes_storage
         self.phantom_sets_by_buffer = {}
         self.show_errors = False
+        self.suggestions = []
 
     def colorize(self, view=None):
         if view is None:
@@ -107,37 +108,40 @@ class Editor(object):
         '''
         for file in self.notes_storage.per_file_cache.keys():
             view = self.w.find_open_file(str(file))
-            buffer_id = view.buffer_id()
-            if buffer_id not in self.phantom_sets_by_buffer:
-                phantom_set = sublime.PhantomSet(view, "exec")
-                self.phantom_sets_by_buffer[buffer_id] = phantom_set
-            else:
-                phantom_set = self.phantom_sets_by_buffer[buffer_id]
+            # view is None if no such file is open
+            if view:
+                buffer_id = view.buffer_id()
+                if buffer_id not in self.phantom_sets_by_buffer:
+                    phantom_set = sublime.PhantomSet(view, "exec")
+                    self.phantom_sets_by_buffer[buffer_id] = phantom_set
+                else:
+                    phantom_set = self.phantom_sets_by_buffer[buffer_id]
 
-            phantoms = []
+                phantoms = []
 
-            errs = self.notes_storage.for_file(view.file_name())
+                errs = self.notes_storage.for_file(view.file_name())
 
-            for note in errs:
-                if note.severity == "NoteInfo":
-                    continue
-                clss = "error" if note.severity == "NoteError" else "warn"
-                phantoms.append(sublime.Phantom(
-                    sublime.Region(note.start, note.end),
-                    ('<body id=inline-error>' + stylesheet +
-                        '<div class=' + clss + '>' +
-                        '<span class="message">' + html.escape(note.message, quote=False) + '</span>' +
-                        '<a href=hide>' + chr(0x00D7) + '</a></div>' +
-                        '</body>'),
-                    sublime.LAYOUT_BLOCK,
-                    on_navigate=self.on_phantom_navigate))
+                for note in errs:
+                    if note.severity == "NoteInfo":
+                        continue
+                    clss = "error" if note.severity == "NoteError" else "warn"
+                    phantoms.append(sublime.Phantom(
+                        sublime.Region(note.start, note.end),
+                        ('<body id=inline-error>' + stylesheet +
+                            '<div class=' + clss + '>' +
+                            '<span class="message">' + html.escape(note.message, quote=False) + '</span>' +
+                            '<a href=hide>' + chr(0x00D7) + '</a></div>' +
+                            '</body>'),
+                        sublime.LAYOUT_BLOCK,
+                        on_navigate=self.on_phantom_navigate))
 
-            phantom_set.update(phantoms)
+                phantom_set.update(phantoms)
 
     def hide_phantoms(self):
         for file in self.notes_storage.per_file_cache.keys():
             view = self.w.find_open_file(str(file))
-            view.erase_phantoms("exec")
+            if view:
+                view.erase_phantoms("exec")
         self.show_errors = False
         self.phantom_sets_by_buffer = {}
 

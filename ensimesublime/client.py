@@ -6,10 +6,10 @@ import json
 from threading import Thread
 
 import websocket
-from functools import partial as bind
+# from functools import partial as bind
 
 from protocol import ProtocolHandler
-from util import catch, Pretty
+from util import catch
 from errors import LaunchError
 from outgoing import ConnectionInfoRequest
 from config import gconfig
@@ -77,6 +77,7 @@ class EnsimeClient(ProtocolHandler):
                 def log_and_close(msg):
                     if self.connected:
                         self.env.logger.error('Websocket exception', exc_info=True)
+                        self.env.logger.warning("Forcing shutdown. Check server log to see what happened.")
                         # Stop everything.
                         self.shutdown_server()
                         self._display_ws_warning()
@@ -124,7 +125,7 @@ class EnsimeClient(ProtocolHandler):
                 self.connected = self.connect_ensime_server()
 
             if self.connected:
-                self.env.logger.info("Connected to the server.")
+                self.env.logger.info("Connected to the server through websocket.")
             else:
                 fallback()
                 self.env.logger.info("Couldn't connect to the server waited to long :(")
@@ -172,13 +173,12 @@ class EnsimeClient(ProtocolHandler):
                 self.env.logger.debug('send: sending JSON on WebSocket')
                 self.ws.send(msg + "\n")
 
-    def get_response(self, call_id, timeout=10, should_wait=True):
+    def get_response(self, call_id, timeout):
         """Gets a response with the specified call_id.
-        If should_wait is set to true waits for the response to appear
-        in the `responses` map for time specified by timeout.
+        Waits for the response to appear in the `responses` map for time specified by timeout.
         Returns the payload or None based on wether a response for that call_id was found."""
         start, now = time.time(), time.time()
-        while should_wait and (call_id not in self.responses) and (now - start) < timeout:
+        while (call_id not in self.responses) and (now - start) < timeout:
                 time.sleep(0.5)
                 now = time.time()
         if call_id not in self.responses:
