@@ -15,7 +15,8 @@ from outgoing import (TypeCheckFilesReq,
                       RenameRefactorDesc,
                       InlineLocalRefactorDesc,
                       CompletionsReq,
-                      TypeAtPointReq)
+                      TypeAtPointReq,
+                      DocUriAtPointReq)
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -192,10 +193,32 @@ class EnsimeShowType(EnsimeTextCommand):
         env = getEnvironment(self.view.window())
         if env and env.is_connected():
             view = self.view
-            if len(view.sel()) <= 2:
+            if len(view.sel()) <= 1:
                 contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
                             else None)
                 pos = int(target or view.sel()[0].begin())
                 TypeAtPointReq(view.file_name(),
                                contents,
                                pos).run_in(env, async=True)
+            else:
+                env.status_message("You have multiple cursors. Ensime is confused :/")
+
+
+class EnsimeBrowseDocAtPoint(EnsimeTextCommand):
+    def is_enabled(self):
+        env = getEnvironment(sublime.active_window())
+        return bool(env and env.is_connected())
+
+    def run(self, edit, target=None):
+        env = getEnvironment(self.view.window())
+        if env and env.is_connected():
+            view = self.view
+            if len(view.sel()) <= 1:
+                contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
+                            else None)
+                pos = int(target or view.sel()[0].begin())
+                DocUriAtPointReq(view.file_name(),
+                                 contents,
+                                 pos).run_in(env, async=True)
+            else:
+                env.status_message("You have multiple cursors. Ensime is confused :/")

@@ -8,7 +8,8 @@
               { "caption": "Add import", "command": "ensime_add_import" },
               { "caption": "Organise imports", "command": "ensime_organise_imports" },
               { "caption": "Rename", "command": "ensime_rename"},
-              { "caption": "Inline local", "command": "ensime_inline_local" }
+              { "caption": "Inline local", "command": "ensime_inline_local" },
+              { "caption": "Show documentation", "command": "ensime_browse_doc_at_point"}
         ]
     },
 

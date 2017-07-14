@@ -113,6 +113,7 @@ class CompletionsReq(RpcRequest):
 
 class TypeAtPointReq(RpcRequest):
     def __init__(self, file, contents, pos):
+        super(TypeAtPointReq, self).__init__()
         self.file_info = self._file_info(file, contents)
         self.pos = pos
 
@@ -129,6 +130,29 @@ class TypeAtPointReq(RpcRequest):
                 "range": {"from": self.pos, "to": self.pos}}
 
 
+class DocUriAtPointReq(RpcRequest):
+    def __init__(self, file, contents, pos):
+        super(DocUriAtPointReq, self).__init__()
+        self.file = self._file_info(file, contents)
+        self.pos = pos
+
+    def _file_info(self, file, contents):
+        """Message fragment for ENSIME ``fileInfo`` field, from current file."""
+        file_info = {"file": file}
+        if contents is not None:
+            file_info.update({"contents": contents})
+        return file_info
+
+    def json_repr(self):
+        return {"typehint": "DocUriAtPointReq",
+                "file": self.file,
+                "point": {"from": self.pos, "to": self.pos}}
+
+    def call_options(self):
+        return {"browse": True}
+
+
+# ########################## Refactor Requests ##########################
 class RefactorRequest(RpcRequest):
     def __init__(self):
         super(RefactorRequest, self).__init__()
@@ -221,3 +245,91 @@ class InlineLocalRefactorDesc(RefactorRequest):
                                "file": self.file,
                                },
                 "ref_options": {"interactive": False}}
+
+
+# ########################## Debug Requests ##########################
+class DebugSetBreakReq(RpcRequest):
+    def __init__(self, file, line, max_results=10):
+        super(DebugSetBreakReq, self).__init__()
+        self.file = file
+        self.line = line
+        self.max_results = max_results
+
+    def json_repr(self):
+        return {"line": self.line,
+                "maxResults": self.max_results,
+                "typehint": "DebugSetBreakReq",
+                "file": self.file}
+
+
+class DebugClearAllBreaksReq(RpcRequest):
+    def __init__(self):
+        super(DebugClearAllBreaksReq, self).__init__()
+
+    def json_repr(self):
+        return {"typehint": "DebugClearAllBreaksReq"}
+
+
+class DebugAttachReq(RpcRequest):
+    def __init__(self, hostname, port):
+        super(DebugAttachReq, self).__init__()
+        self.hostname = hostname
+        self.port = port
+
+    def json_repr(self):
+        return {"typehint": "DebugAttachReq",
+                "hostname": self.hostname,
+                "port": self.port}
+
+
+class DebugContinueRequest(RpcRequest):
+    def __init__(self, thread_id):
+        super(DebugContinueRequest, self).__init__()
+        self.thread_id = thread_id
+
+    def json_repr(self):
+        return {"typehint": "DebugContinueReq",
+                "threadId": self.thread_id}
+
+
+class DebugBacktraceReq(RpcRequest):
+    def __init__(self, thread_id, index=0, count=100):
+        super(DebugBacktraceReq, self).__init__()
+        self.thread_id = thread_id
+        self.index = index
+        self.count = count
+
+    def json_repr(self):
+        return {"typehint": "DebugBacktraceReq",
+                "threadId": self.thread_id,
+                "index": self.index, "count": self.count}
+
+
+class DebugStepReq(RpcRequest):
+    def __init__(self, thread_id):
+        super(DebugStepReq, self).__init__()
+        self.thread_id = thread_id
+
+    def json_repr(self):
+        return {"typehint": "DebugStepReq",
+                "threadId": self.thread_id}
+
+
+class DebugStepOutReq(RpcRequest):
+    def __init__(self, thread_id):
+        super(DebugStepOutReq, self).__init__()
+        self.thread_id = thread_id
+
+    def json_repr(self):
+        return {"typehint": "DebugStepOutReq",
+                "threadId": self.thread_id}
+
+
+class DebugNextReq(RpcRequest):
+    def __init__(self, thread_id):
+        super(DebugNextReq, self).__init__()
+        self.thread_id = thread_id
+
+    def json_repr(self):
+        return {"typehint": "DebugNextReq",
+                "threadId": self.thread_id}

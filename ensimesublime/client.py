@@ -13,9 +13,10 @@ from util import catch
 from errors import LaunchError
 from outgoing import ConnectionInfoRequest
 from config import gconfig
+from debugger import DebugHandler
 
 
-class EnsimeClient(ProtocolHandler):
+class EnsimeClient(ProtocolHandler, DebugHandler):
     """An ENSIME client for a project configuration path (``.ensime``).
 
     This is a base class with an abstract ProtocolHandler – you will
@@ -58,6 +59,7 @@ class EnsimeClient(ProtocolHandler):
         # By default, don't connect to server more than once
         self.number_try_connection = 1
 
+        self.debug_thread_id = None
         self.running = True  # queue poll is running
         self.connected = False  # connected to ensime server through websocket
 

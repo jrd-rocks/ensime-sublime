@@ -1,6 +1,7 @@
 # coding: utf-8
 import sublime
 
+import webbrowser
 import html
 from functools import partial as bind
 
@@ -8,7 +9,7 @@ from util import catch, Pretty
 from notes import Note
 from outgoing import AddImportRefactorDesc, TypeCheckFilesReq
 from patch import fromfile
-from config import feedback
+from config import feedback, gconfig
 from symbol_format import completion_to_suggest, type_to_show
 
 
@@ -40,12 +41,12 @@ class ProtocolHandler(object):
         self.handlers["BasicTypeInfo"] = self.show_type
         self.handlers["ArrowTypeInfo"] = self.show_type
         self.handlers["FullTypeCheckCompleteEvent"] = self.handle_typecheck_complete
-        # self.handlers["StringResponse"] = self.handle_string_response
+        self.handlers["StringResponse"] = self.handle_string_response
         self.handlers["CompletionInfoList"] = self.handle_completion_info_list
         # self.handlers["SymbolSearchResults"] = self.handle_symbol_search
-        # self.handlers["DebugOutputEvent"] = self.handle_debug_output
-        # self.handlers["DebugBreakEvent"] = self.handle_debug_break
-        # self.handlers["DebugBacktrace"] = self.handle_debug_backtrace
+        self.handlers["DebugOutputEvent"] = self.handle_debug_output
+        self.handlers["DebugBreakEvent"] = self.handle_debug_break
+        self.handlers["DebugBacktrace"] = self.handle_debug_backtrace
         # self.handlers["DebugVmError"] = self.handle_debug_vm_error
         self.handlers["RefactorDiffEffect"] = self.apply_refactor
         self.handlers["ImportSuggestions"] = self.handle_import_suggestions
@@ -87,7 +88,6 @@ class ProtocolHandler(object):
         for view in self.env.window.views():
             files.append(view.file_name())
         TypeCheckFilesReq(files).run_in(self.env, async=True)
-        self.env.editor.show_errors = True
 
     def handle_scala_notes(self, call_id, payload):
         self.env.notes_storage.append(map(Note, payload['notes']))
@@ -164,7 +164,36 @@ class ProtocolHandler(object):
         sublime.set_timeout(_scroll_once_loaded, 0)
 
     def handle_string_response(self, call_id, payload):
-        raise NotImplementedError()
+        """Handler for response `StringResponse`.
+
+        This is the response for the following requests:
+          1. `DocUriAtPointReq` or `DocUriForSymbolReq`
+          2. `DebugToStringReq`
+        """
+
+        # :EnDocBrowse or :EnDocUri
+        url = payload['text']
+        if not url.startswith('http'):
+            port = self.ensime.http_port()
+            url = gconfig['localhost'].format(port, url)
+
+        options = self.call_options.get(call_id)
+        if options and options.get('browse'):
+            sublime.set_timeout(bind(self._browse_doc, self.env, url), 0)
+            del self.call_options[call_id]
+        else:
+            pass
+            # TODO: make this return value of a Vim function synchronously, how?
+            # self.env.logger.debug('EnDocUri %s', url)
+            # return url
+
+    def _browse_doc(self, env, url):
+        try:
+            if webbrowser.open(url):
+                env.logger.info('opened %s', url)
+        except webbrowser.Error:
+            env.logger.exception('_browse_doc: webbrowser error')
+            env.error_message(feedback["manual_doc"].format(url))
 
     def handle_completion_info_list(self, call_id, payload):
         """Handler for a completion response."""
