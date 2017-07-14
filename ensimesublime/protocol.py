@@ -9,7 +9,7 @@ from notes import Note
 from outgoing import AddImportRefactorDesc, TypeCheckFilesReq
 from patch import fromfile
 from config import feedback
-from symbol_format import completion_to_suggest
+from symbol_format import completion_to_suggest, type_to_show
 
 
 class ProtocolHandler(object):
@@ -215,7 +215,7 @@ class ProtocolHandler(object):
             self.env.status_message("Refactor failed: {}".format(diff_file))
 
     def show_type(self, call_id, payload):
-        tpe = payload['fullName']
+        tpe = type_to_show(payload)
         self.env.logger.info('Found type {}'.format(tpe))
         content = """
             <body id=show-scope>

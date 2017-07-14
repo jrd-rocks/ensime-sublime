@@ -13,7 +13,7 @@ def completion_to_suggest(completion):
         # We show the whole method signature in the popup
         "abbr": formatted_completion_sig(completion),
         # We show method result/field type in a sepatate column
-        "menu": formatted_completion_type(completion),
+        "menu": formatted_type(completion["typeInfo"]),
         # We allow duplicates, needed to show overloaded methods
         "dup": 1
     }
@@ -21,14 +21,22 @@ def completion_to_suggest(completion):
     return resp
 
 
+def type_to_show(tpe):
+    if is_basic_type(tpe):
+        return tpe["fullName"]
+    signature = formatted_message_params(tpe)
+    return_type = formatted_type(tpe)
+    return "{} => {}".format(signature, return_type)
+
+
 def is_basic_type(completion):
-    return completion["typeInfo"]["typehint"] == "BasicTypeInfo"
+    return completion["typehint"] == "BasicTypeInfo"
 
 
 def formatted_completion_sig(completion):
     """Regenerate signature for methods. Return just the name otherwise"""
     f_result = completion["name"]
-    if is_basic_type(completion):
+    if is_basic_type(completion["typeInfo"]):
         # It's a raw type
         return f_result
     elif len(completion["typeInfo"]["paramSections"]) == 0:
@@ -40,10 +48,15 @@ def formatted_completion_sig(completion):
     return u"{}{}".format(f_result, "".join(f_sections))
 
 
-def formatted_completion_type(completion):
+def formatted_message_params(typeInfo):
+    sections = typeInfo["paramSections"]
+    f_sections = [formatted_param_section(ps) for ps in sections]
+    return "".join(f_sections)
+
+
+def formatted_type(typeInfo):
     """Use result type for methods. Return just the member type otherwise"""
-    t_info = completion["typeInfo"]
-    return t_info["name"] if is_basic_type(completion) else t_info["resultType"]["name"]
+    return typeInfo["name"] if is_basic_type(typeInfo) else typeInfo["resultType"]["name"]
 
 
 def formatted_param_section(section):

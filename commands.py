@@ -191,9 +191,11 @@ class EnsimeShowType(EnsimeTextCommand):
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
         if env and env.is_connected():
-            if len(self.view.sel()) <= 2:
-                if self.view.is_dirty():
-                    self.view.run_command("save")
-                pos = int(target or self.view.sel()[0].begin())
-                TypeAtPointReq(self.view.file_name(),
+            view = self.view
+            if len(view.sel()) <= 2:
+                contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
+                            else None)
+                pos = int(target or view.sel()[0].begin())
+                TypeAtPointReq(view.file_name(),
+                               contents,
                                pos).run_in(env, async=True)

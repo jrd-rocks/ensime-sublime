@@ -98,10 +98,10 @@ class CompletionsReq(RpcRequest):
 
     def _file_info(self, file, contents):
         """Message fragment for ENSIME ``fileInfo`` field, from current file."""
-        return {
-            'file': file,
-            'contents': contents,
-        }
+        file_info = {"file": file}
+        if contents is not None:
+            file_info.update({"contents": contents})
+        return file_info
 
     def json_repr(self):
         return {"point": self.point, "maxResults": self.max_results,
@@ -112,13 +112,20 @@ class CompletionsReq(RpcRequest):
 
 
 class TypeAtPointReq(RpcRequest):
-    def __init__(self, file, pos):
-        self.file = file
+    def __init__(self, file, contents, pos):
+        self.file_info = self._file_info(file, contents)
         self.pos = pos
+
+    def _file_info(self, file, contents):
+        """Message fragment for ENSIME ``fileInfo`` field, from current file."""
+        file_info = {"file": file}
+        if contents is not None:
+            file_info.update({"contents": contents})
+        return file_info
 
     def json_repr(self):
         return {"typehint": "TypeAtPointReq",
-                "file": self.file,
+                "file": self.file_info,
                 "range": {"from": self.pos, "to": self.pos}}
 
 
