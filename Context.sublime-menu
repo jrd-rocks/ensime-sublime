@@ -5,10 +5,12 @@
         "children":
         [     { "caption": "Show type", "command": "ensime_show_type" },
               { "caption": "Go to definition", "command": "ensime_go_to_definition" },
+              { "caption": "-", "id": "refactor" },
               { "caption": "Add import", "command": "ensime_add_import" },
               { "caption": "Organise imports", "command": "ensime_organise_imports" },
               { "caption": "Rename", "command": "ensime_rename"},
               { "caption": "Inline local", "command": "ensime_inline_local" },
+              { "caption": "-", "id": "documentation" },
               { "caption": "Show documentation", "command": "ensime_browse_doc_at_point"}
         ]
     },
