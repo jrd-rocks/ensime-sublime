@@ -3,7 +3,7 @@ import sublime
 import os
 import threading
 import logging
-from logging.handlers import WatchedFileHandler
+from logging import FileHandler
 from functools import partial as bind
 import datetime
 
@@ -63,9 +63,6 @@ Raised an error : {err}""".format(window=window_key, err=e))
 class _EnsimeEnvironment(object):
     """An Ensime Environment for a scala project.
 
-    It's construction might raise an error if a .ensime file is not found or
-    it cannot be parsed.
-
     Every commmand requires an EnsimeEnvironment instance which is obtained through
     getOrCreateNew. It contains the config map and loggger which can then be used for
     further tasks."""
@@ -73,7 +70,7 @@ class _EnsimeEnvironment(object):
         self.window = window
         self.logger = None
         self.valid = False
-        self.notes_storage = NotesStorage()
+        self.notes_storage = None
         self.editor = None
         self.client = None
         # Not valid when created, you must call recalc while starting up Ensime
@@ -83,14 +80,13 @@ class _EnsimeEnvironment(object):
         logger = logging.getLogger("ensime")
         file_log_formatter = logging.Formatter(LOG_FORMAT)
         console_log_formatter = logging.Formatter(CONSOLE_LOG_FORMAT)
-        # console_log_formatter = logging.Formatter("[Ensime] %(asctime)s [%(levelname)-5.5s]  %(message)s")
 
         logger.handlers.clear()
         with open(log_file, "w") as f:
             now = datetime.datetime.now()
             tm = now.strftime("%Y-%m-%d %H:%M:%S.%f")
             f.write("{}: {} - {}\n".format(tm, "Initializing project", self.project_root))
-        file_handler = WatchedFileHandler(log_file)
+        file_handler = FileHandler(log_file)
         file_handler.setFormatter(file_log_formatter)
         logger.addHandler(file_handler)
 
@@ -108,34 +104,40 @@ class _EnsimeEnvironment(object):
 
     def recalc(self):
         """Recalculates the ensime environment variables and return True if
-        if successfull else False.
-        Note : Calls dotensime.load for loading .ensime config which might
+        if successfull else raises an exception.
+        Calls dotensime.load for loading .ensime config which might
         raise error if config is not found or cannot be parsed.
         It also :
             Creates the cache-dir if it doesn't already exist.
             Create the logger.
-            Resets the session_id and client.
+            Resets the client.
         """
         # plugin-wide stuff (immutable)
         self.settings = sublime.load_settings("Ensime.sublime-settings")
         debug = self.settings.get("debug", False)
+
+        # for better experience
         s = sublime.load_settings("Preferences.sublime-settings")
+        self.previous_auto_complete = s.get("auto_complete", True)
         s.set("auto_complete", False)
+        self.previous_show_definitions = s.get("show_definitons", True)
+        s.set("show_definitions", False)
         sublime.save_settings("Preferences.sublime-settings")
-        # instance-specific stuff (immutable)
+
+        # initialize parameters ()
         self.config = dotensime.load(self.window)
-        self.project_root = self.config['root-dir']
         self.valid = self.config is not None
+        self.project_root = self.config['root-dir']
+        self.notes_storage = NotesStorage()
         self.cache_dir = self.config['cache-dir']
-        # self.id2project = {EnsimeProjectId(**p['id']): p for p in self.config['projects']}
+        self.editor = Editor(self.window, self.settings, self.notes_storage)
+        self.client = None
         # ensure the cache_dir exists otherwise log initialisation will fail
         Util.mkdir_p(self.cache_dir)
         self.log_file = os.path.join(self.cache_dir, "ensime.log")
         if self.logger is None:
             self.logger = self.create_logger(debug, self.log_file)
-        # system stuff (mutable)
-        self.editor = Editor(self.window, self.settings, self.notes_storage)
-        self.client = None
+
         return True
 
     def is_running(self):
@@ -150,3 +152,16 @@ class _EnsimeEnvironment(object):
 
     def error_message(self, msg):
         sublime.set_timeout(bind(sublime.error_message, msg), 0)
+
+    def shutdown(self):
+        self.client.teardown()
+        self.logger = None
+        self.valid = False
+        self.notes_storage = None
+        self.editor = None
+        self.client = None
+        # reverting changings to user preferences
+        s = sublime.load_settings("Preferences.sublime-settings")
+        s.set("auto_complete", self.previous_auto_complete)
+        s.set("show_definitions", self.previous_show_definitions)
+        sublime.save_settings("Preferences.sublime-settings")

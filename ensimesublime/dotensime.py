@@ -8,6 +8,8 @@ from config import ProjectConfig
 def _locations(window):
     """Intelligently guess the appropriate .ensime file locations for the
     given window. Return: list of possible locations."""
+    if len(window.folders()) == 0:
+        window.run_command("refresh_folder_list")
     return [(f + os.sep + ".ensime") for f in window.folders() if os.path.exists(f + os.sep + ".ensime")]
 
 
@@ -28,5 +30,5 @@ def load(window):
     raise DotEnsimeNotFound(errno.ENOENT,
                             """Ensime has failed to find a .ensime file within this project.
 Create a .ensime file by running'sbt ensimeConfig' or equivalent for your build tool.
-We looked at : """,
+We looked at """,
                             window.folders())

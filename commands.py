@@ -14,7 +14,8 @@ from outgoing import (TypeCheckFilesReq,
                       OrganiseImports,
                       RenameRefactorDesc,
                       InlineLocalRefactorDesc,
-                      CompletionsReq)
+                      CompletionsReq,
+                      TypeAtPointReq)
 
 
 class EnsimeStartup(EnsimeWindowCommand):
@@ -26,8 +27,8 @@ class EnsimeStartup(EnsimeWindowCommand):
             self.env.recalc()
         except Exception:
             typ, value, traceback = sys.exc_info()
-            self.env.error_message("Got an error :\n{t} : {val}"
-                                   .format(t=typ, val=str(value).split(".")[-1]))
+            self.env.error_message("Got an error : {t}\n{val}"
+                                   .format(t=typ, val=value))
         else:
             launcher = EnsimeLauncher(self.env.config)
             self.env.client = EnsimeClient(self.env, launcher)
@@ -39,7 +40,7 @@ class EnsimeShutdown(EnsimeWindowCommand):
         return bool(self.env and self.env.is_running())
 
     def run(self):
-        self.env.client.teardown()
+        self.env.shutdown()
 
 
 class EnsimeShowErrors(EnsimeWindowCommand):
@@ -72,6 +73,9 @@ class EnsimeEventListener(sublime_plugin.EventListener):
 
             if (env.editor.current_prefix and prefix == env.editor.current_prefix):
                 env.editor.current_prefix = None
+                if view.is_popup_visible():
+                    view.hide_popup()
+                env.logger.info("Search for more suggestions either completed or was cancelled.")
                 return env.editor.suggestions
 
             contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
@@ -86,7 +90,10 @@ class EnsimeEventListener(sublime_plugin.EventListener):
                         sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
                 env.editor.ignore_prefix = prefix
             else:
-                CompletionsReq(locations[0], view.file_name(), contents).run_in(env, async=True)
+                if len(env.editor.suggestions) > 1:
+                    CompletionsReq(locations[0], view.file_name(), contents).run_in(env, async=True)
+                    view.show_popup("Please wait while we query for more suggestions.",
+                                    sublime.HIDE_ON_MOUSE_MOVE | sublime.COOPERATE_WITH_AUTO_COMPLETE)
                 return (env.editor.suggestions,
                         sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
 
@@ -174,3 +181,19 @@ class EnsimeInlineLocal(EnsimeTextCommand):
             InlineLocalRefactorDesc(pos,
                                     pos + len(word),
                                     self.view.file_name()).run_in(env, async=True)
+
+
+class EnsimeShowType(EnsimeTextCommand):
+    def is_enabled(self):
+        env = getEnvironment(sublime.active_window())
+        return bool(env and env.is_connected())
+
+    def run(self, edit, target=None):
+        env = getEnvironment(self.view.window())
+        if env and env.is_connected():
+            if len(self.view.sel()) <= 2:
+                if self.view.is_dirty():
+                    self.view.run_command("save")
+                pos = int(target or self.view.sel()[0].begin())
+                TypeAtPointReq(self.view.file_name(),
+                               pos).run_in(env, async=True)

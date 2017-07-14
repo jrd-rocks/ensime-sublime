@@ -17,7 +17,7 @@ def completion_to_suggest(completion):
         # We allow duplicates, needed to show overloaded methods
         "dup": 1
     }
-    resp = ("{}\t{}".format(res["word"], res["abbr"]), res["abbr"])
+    resp = ("{}\t{:^32.30} {:>10}".format(res["word"], res["abbr"], res["menu"]), res["abbr"])
     return resp
 
 

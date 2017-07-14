@@ -111,6 +111,17 @@ class CompletionsReq(RpcRequest):
                 "reload": self.reLoad}
 
 
+class TypeAtPointReq(RpcRequest):
+    def __init__(self, file, pos):
+        self.file = file
+        self.pos = pos
+
+    def json_repr(self):
+        return {"typehint": "TypeAtPointReq",
+                "file": self.file,
+                "range": {"from": self.pos, "to": self.pos}}
+
+
 class RefactorRequest(RpcRequest):
     def __init__(self):
         super(RefactorRequest, self).__init__()

@@ -1,6 +1,7 @@
 # coding: utf-8
 import sublime
 
+import html
 from functools import partial as bind
 
 from util import catch, Pretty
@@ -36,8 +37,8 @@ class ProtocolHandler(object):
         self.handlers["NewScalaNotesEvent"] = self.handle_scala_notes
         self.handlers["NewJavaNotesEvent"] = self.handle_java_notes
         self.handlers["ClearAllScalaNotesEvent"] = self.handle_clear_scala_notes
-        # self.handlers["BasicTypeInfo"] = self.show_type
-        # self.handlers["ArrowTypeInfo"] = self.show_type
+        self.handlers["BasicTypeInfo"] = self.show_type
+        self.handlers["ArrowTypeInfo"] = self.show_type
         self.handlers["FullTypeCheckCompleteEvent"] = self.handle_typecheck_complete
         # self.handlers["StringResponse"] = self.handle_string_response
         self.handlers["CompletionInfoList"] = self.handle_completion_info_list
@@ -192,9 +193,6 @@ class ProtocolHandler(object):
             self.env.logger.debug('handle_completion_info_list: {}'
                                   .format(Pretty(self.env.editor.suggestions)))
 
-    def handle_type_inspect(self, call_id, payload):
-        raise NotImplementedError()
-
     def apply_refactor(self, call_id, payload):
         supported_refactorings = ["AddImport", "OrganizeImports", "Rename", "InlineLocal"]
         if payload["refactorType"]["typehint"] in supported_refactorings:
@@ -217,4 +215,31 @@ class ProtocolHandler(object):
             self.env.status_message("Refactor failed: {}".format(diff_file))
 
     def show_type(self, call_id, payload):
-        raise NotImplementedError()
+        tpe = payload['fullName']
+        self.env.logger.info('Found type {}'.format(tpe))
+        content = """
+            <body id=show-scope>
+                <style>
+                    p {
+                        margin-top: 0;
+                        margin-bottom: 0;
+                    }
+                    a {
+                        font-family: sans-serif;
+                        font-size: .7rem;
+                    }
+                </style>
+                <p>%s</p>
+                <a href="%s">Copy</a>
+            </body>
+        """ % (html.escape(tpe, quote=False), html.escape(tpe, quote=True))
+
+        def copy(view, text):
+            sublime.set_clipboard(html.unescape(text))
+            view.hide_popup()
+            sublime.status_message('Type name copied to clipboard')
+
+        sublime.set_timeout(bind(self.env.window.active_view().show_popup,
+                                 content,
+                                 max_width=512,
+                                 on_navigate=lambda x: copy(self.env.window.active_view(), x)), 0)
