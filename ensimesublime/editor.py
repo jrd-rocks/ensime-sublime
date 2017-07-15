@@ -16,6 +16,10 @@ ENSIME_BREAKPOINT_REGION = "ensime-breakpoint"
 ENSIME_DEBUGFOCUS_REGION = "ensime-debugfocus"
 ENSIME_STACKFOCUS_REGION = "ensime-stackfocus"
 
+# status bar error format
+STATUS_BAR_ERROR = " [Line {line}] {severity} : {msg}"
+STATUSGROUP = "ensime_notes"
+
 
 class Editor(object):
     def __init__(self, window, settings, notes_storage):
@@ -171,3 +175,20 @@ class Editor(object):
                     view.run_command("save")
 
             on_load()
+
+    # WIP
+    def redraw_status_if_on_error(self, view, point):
+        errors = self.notes_storage.for_file(view.file_name())
+        severity = None
+        msg = None
+        for err in errors:
+            if (point >= err.start and point <= err.end):
+                if err.severity == "NoteError":
+                    severity = "ERROR"
+                elif err.severity == "NoteWarn":
+                    severity = "WARNING"
+                else:
+                    severity = "INFO"
+            msg = err.message
+        if msg is not None:
+            pass

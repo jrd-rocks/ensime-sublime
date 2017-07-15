@@ -155,11 +155,11 @@ class _EnsimeEnvironment(object):
 
     def shutdown(self):
         self.client.teardown()
-        self.logger = None
         self.valid = False
         self.notes_storage = None
         self.editor = None
         self.client = None
+        self.logger = None
         # reverting changings to user preferences
         s = sublime.load_settings("Preferences.sublime-settings")
         s.set("auto_complete", self.previous_auto_complete)

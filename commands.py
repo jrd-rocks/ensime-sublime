@@ -106,12 +106,16 @@ class EnsimeGoToDefinition(EnsimeTextCommand):
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
-        if env and env.is_connected():
-            if len(self.view.sel()) > 2:
-                env.status_message("You have multiple cursors. Trying to confuse ensime, eh?")
-                return
-            pos = int(target or self.view.sel()[0].begin())
-            SymbolAtPointReq(self.view.file_name(), pos).run_in(env, async=True)
+        view = self.view
+        if len(view.sel()) <= 2:
+            contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
+                        else None)
+            pos = int(target or view.sel()[0].begin())
+            SymbolAtPointReq(view.file_name(),
+                             contents,
+                             pos).run_in(env, async=True)
+        else:
+            env.status_message("You have multiple cursors. Ensime is confused :/")
 
 
 class EnsimeAddImport(EnsimeTextCommand):
@@ -121,13 +125,12 @@ class EnsimeAddImport(EnsimeTextCommand):
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
-        if env and env.is_connected():
-            pos = int(target or self.view.sel()[0].begin())
-            if self.view.is_dirty():
-                self.view.run_command('save')
-            ImportSuggestionsReq(pos,
-                                 self.view.file_name(),
-                                 self.view.substr(self.view.word(pos))).run_in(env, async=True)
+        pos = int(target or self.view.sel()[0].begin())
+        if self.view.is_dirty():
+            self.view.run_command('save')
+        ImportSuggestionsReq(pos,
+                             self.view.file_name(),
+                             self.view.substr(self.view.word(pos))).run_in(env, async=True)
 
 
 class EnsimeOrganiseImports(EnsimeTextCommand):
@@ -137,10 +140,9 @@ class EnsimeOrganiseImports(EnsimeTextCommand):
 
     def run(self, edit):
         env = getEnvironment(self.view.window())
-        if env and env.is_connected():
-            if self.view.is_dirty():
-                self.view.run_command('save')
-            OrganiseImports(self.view.file_name()).run_in(env, async=True)
+        if self.view.is_dirty():
+            self.view.run_command('save')
+        OrganiseImports(self.view.file_name()).run_in(env, async=True)
 
 
 class EnsimeRename(EnsimeTextCommand):
@@ -150,23 +152,22 @@ class EnsimeRename(EnsimeTextCommand):
 
     def run(self, edit):
         env = getEnvironment(self.view.window())
-        if env and env.is_connected():
-            regions = [r for r in self.view.sel()]
-            if len(regions) == 1:
-                region = regions[0]
-                if region.begin() == region.end():
-                    env.status_message('Please select a region to extract the symbol to rename')
-                else:
-                    def make_request(arg):
-                        RenameRefactorDesc(arg,
-                                           region.begin(),
-                                           region.end(),
-                                           self.view.file_name()).run_in(env, async=True)
-                    self.view.window().show_input_panel("Rename to : ",
-                                                        '',
-                                                        make_request, None, None)
+        regions = [r for r in self.view.sel()]
+        if len(regions) == 1:
+            region = regions[0]
+            if region.begin() == region.end():
+                env.status_message('Please select a region to extract the symbol to rename')
             else:
-                env.status_message('Select a single region to extract the symbol to rename')
+                def make_request(arg):
+                    RenameRefactorDesc(arg,
+                                       region.begin(),
+                                       region.end(),
+                                       self.view.file_name()).run_in(env, async=True)
+                self.view.window().show_input_panel("Rename to : ",
+                                                    '',
+                                                    make_request, None, None)
+        else:
+            env.status_message('Select a single region to extract the symbol to rename')
 
 
 class EnsimeInlineLocal(EnsimeTextCommand):
@@ -176,12 +177,11 @@ class EnsimeInlineLocal(EnsimeTextCommand):
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
-        if env and env.is_connected():
-            pos = int(target or self.view.sel()[0].begin())
-            word = self.view.substr(self.view.word(pos))
-            InlineLocalRefactorDesc(pos,
-                                    pos + len(word),
-                                    self.view.file_name()).run_in(env, async=True)
+        pos = int(target or self.view.sel()[0].begin())
+        word = self.view.substr(self.view.word(pos))
+        InlineLocalRefactorDesc(pos,
+                                pos + len(word),
+                                self.view.file_name()).run_in(env, async=True)
 
 
 class EnsimeShowType(EnsimeTextCommand):
@@ -191,17 +191,16 @@ class EnsimeShowType(EnsimeTextCommand):
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
-        if env and env.is_connected():
-            view = self.view
-            if len(view.sel()) <= 1:
-                contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
-                            else None)
-                pos = int(target or view.sel()[0].begin())
-                TypeAtPointReq(view.file_name(),
-                               contents,
-                               pos).run_in(env, async=True)
-            else:
-                env.status_message("You have multiple cursors. Ensime is confused :/")
+        view = self.view
+        if len(view.sel()) <= 1:
+            contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
+                        else None)
+            pos = int(target or view.sel()[0].begin())
+            TypeAtPointReq(view.file_name(),
+                           contents,
+                           pos).run_in(env, async=True)
+        else:
+            env.status_message("You have multiple cursors. Ensime is confused :/")
 
 
 class EnsimeBrowseDocAtPoint(EnsimeTextCommand):
@@ -211,14 +210,13 @@ class EnsimeBrowseDocAtPoint(EnsimeTextCommand):
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
-        if env and env.is_connected():
-            view = self.view
-            if len(view.sel()) <= 1:
-                contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
-                            else None)
-                pos = int(target or view.sel()[0].begin())
-                DocUriAtPointReq(view.file_name(),
-                                 contents,
-                                 pos).run_in(env, async=True)
-            else:
-                env.status_message("You have multiple cursors. Ensime is confused :/")
+        view = self.view
+        if len(view.sel()) <= 1:
+            contents = (view.substr(sublime.Region(0, view.size())) if view.is_dirty()
+                        else None)
+            pos = int(target or view.sel()[0].begin())
+            DocUriAtPointReq(view.file_name(),
+                             contents,
+                             pos).run_in(env, async=True)
+        else:
+            env.status_message("You have multiple cursors. Ensime is confused :/")

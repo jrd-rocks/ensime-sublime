@@ -55,18 +55,6 @@ class TypeCheckFilesReq(RpcRequest):
                 "files": self.filenames}
 
 
-class SymbolAtPointReq(RpcRequest):
-    def __init__(self, filename, pos):
-        super(SymbolAtPointReq, self).__init__()
-        self.filename = filename
-        self.pos = pos
-
-    def json_repr(self):
-        return {"point": self.pos,
-                "typehint": "SymbolAtPointReq",
-                "file": self.filename}
-
-
 class ImportSuggestionsReq(RpcRequest):
     def __init__(self, pos, file, word, max_results=10):
         super(ImportSuggestionsReq, self).__init__()
@@ -111,9 +99,9 @@ class CompletionsReq(RpcRequest):
                 "reload": self.reLoad}
 
 
-class TypeAtPointReq(RpcRequest):
+class SymbolAtPointReq(RpcRequest):
     def __init__(self, file, contents, pos):
-        super(TypeAtPointReq, self).__init__()
+        super(SymbolAtPointReq, self).__init__()
         self.file_info = self._file_info(file, contents)
         self.pos = pos
 
@@ -125,16 +113,18 @@ class TypeAtPointReq(RpcRequest):
         return file_info
 
     def json_repr(self):
-        return {"typehint": "TypeAtPointReq",
+        return {"typehint": "SymbolAtPointReq",
                 "file": self.file_info,
-                "range": {"from": self.pos, "to": self.pos}}
+                "point": self.pos}
 
 
-class DocUriAtPointReq(RpcRequest):
-    def __init__(self, file, contents, pos):
-        super(DocUriAtPointReq, self).__init__()
-        self.file = self._file_info(file, contents)
+class GenericAtPointReq(RpcRequest):
+    def __init__(self, file, contents, pos, what):
+        super(GenericAtPointReq, self).__init__()
+        self.file_info = self._file_info(file, contents)
+        self.pos_tag = "range" if what == "Type" else "point"
         self.pos = pos
+        self.what = what
 
     def _file_info(self, file, contents):
         """Message fragment for ENSIME ``fileInfo`` field, from current file."""
@@ -144,9 +134,19 @@ class DocUriAtPointReq(RpcRequest):
         return file_info
 
     def json_repr(self):
-        return {"typehint": "DocUriAtPointReq",
-                "file": self.file,
-                "point": {"from": self.pos, "to": self.pos}}
+        return {"typehint": "{}AtPointReq".format(self.what),
+                "file": self.file_info,
+                "{}".format(self.pos_tag): {"from": self.pos, "to": self.pos}}
+
+
+class TypeAtPointReq(GenericAtPointReq):
+    def __init__(self, file, contents, pos):
+        super(TypeAtPointReq, self).__init__(file, contents, pos, "Type")
+
+
+class DocUriAtPointReq(GenericAtPointReq):
+    def __init__(self, file, contents, pos):
+        super(DocUriAtPointReq, self).__init__(file, contents, pos, "DocUri")
 
     def call_options(self):
         return {"browse": True}
@@ -282,16 +282,6 @@ class DebugAttachReq(RpcRequest):
                 "port": self.port}
 
 
-class DebugContinueRequest(RpcRequest):
-    def __init__(self, thread_id):
-        super(DebugContinueRequest, self).__init__()
-        self.thread_id = thread_id
-
-    def json_repr(self):
-        return {"typehint": "DebugContinueReq",
-                "threadId": self.thread_id}
-
-
 class DebugBacktraceReq(RpcRequest):
     def __init__(self, thread_id, index=0, count=100):
         super(DebugBacktraceReq, self).__init__()
@@ -305,31 +295,32 @@ class DebugBacktraceReq(RpcRequest):
                 "index": self.index, "count": self.count}
 
 
-class DebugStepReq(RpcRequest):
-    def __init__(self, thread_id):
-        super(DebugStepReq, self).__init__()
+class SimpleDebugRequest(RpcRequest):
+    def __init__(self, thread_id, what):
+        super(SimpleDebugRequest, self).__init__()
         self.thread_id = thread_id
+        self.what = what
 
     def json_repr(self):
-        return {"typehint": "DebugStepReq",
+        return {"typehint": "{}Req".format(self.what),
                 "threadId": self.thread_id}
 
 
-class DebugStepOutReq(RpcRequest):
+class DebugContinueRequest(SimpleDebugRequest):
     def __init__(self, thread_id):
-        super(DebugStepOutReq, self).__init__()
-        self.thread_id = thread_id
-
-    def json_repr(self):
-        return {"typehint": "DebugStepOutReq",
-                "threadId": self.thread_id}
+        super(DebugContinueRequest, self).__init__(thread_id, "DebugContinue")
 
 
-class DebugNextReq(RpcRequest):
+class DebugStepReq(SimpleDebugRequest):
     def __init__(self, thread_id):
-        super(DebugNextReq, self).__init__()
-        self.thread_id = thread_id
+        super(DebugStepReq, self).__init__(thread_id, "DebugStep")
 
-    def json_repr(self):
-        return {"typehint": "DebugNextReq",
-                "threadId": self.thread_id}
+
+class DebugStepOutReq(SimpleDebugRequest):
+    def __init__(self, thread_id):
+        super(DebugStepOutReq, self).__init__(thread_id, "DebugStepOut")
+
+
+class DebugNextReq(SimpleDebugRequest):
+    def __init__(self, thread_id):
+        super(DebugNextReq, self).__init__(thread_id, "DebugNext")
