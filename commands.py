@@ -149,7 +149,7 @@ class EnsimeAddImport(EnsimeTextCommand):
 class EnsimeOrganiseImports(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected() and env.client.analyzer_ready)
+        return bool(env and env.is_connected() and env.client.indexer_ready)
 
     def run(self, edit):
         env = getEnvironment(self.view.window())
@@ -161,7 +161,7 @@ class EnsimeOrganiseImports(EnsimeTextCommand):
 class EnsimeRename(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected() and env.client.analyzer_ready)
+        return bool(env and env.is_connected() and env.client.indexer_ready)
 
     def run(self, edit):
         env = getEnvironment(self.view.window())
@@ -186,7 +186,7 @@ class EnsimeRename(EnsimeTextCommand):
 class EnsimeInlineLocal(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected() and env.client.analyzer_ready)
+        return bool(env and env.is_connected() and env.client.indexer_ready)
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
@@ -219,7 +219,7 @@ class EnsimeShowType(EnsimeTextCommand):
 class EnsimeBrowseDocAtPoint(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected() and env.client.analyzer_ready)
+        return bool(env and env.is_connected() and env.client.indexer_ready)
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())

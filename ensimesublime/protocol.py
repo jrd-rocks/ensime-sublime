@@ -75,7 +75,8 @@ class ProtocolHandler(object):
         self.server_version = payload.get("version", "unknown")
         self.env.logger.info("Connected to the ensime server {} through websocket. \
 Please wait while we get the analyzer and indexer ready. Indexing files may take a while and \
-consequently few of the commands may take longer to get enabled."
+consequently the context menu commands may take longer to get enabled. You may check the server\
+.log to see what's currently indexing or if any error occured while indexing."
                              .format(self.server_version))
 
     def handle_background_message(self, call_id, payload):
