@@ -154,7 +154,8 @@ class Editor(object):
     def on_phantom_navigate(self, url):
         self.hide_phantoms()
 
-    def reload_file(self, view=None):
+    def reload_file(self, file):
+        view = self.w.find_open_file(file)
         if view:
             original_size = view.size()
             original_pos = view.sel()[0].begin()

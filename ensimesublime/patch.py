@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# Imported from https://github.com/techtonik/python-patch as modules are funky in Sublime Text 
+# Imported from https://github.com/techtonik/python-patch as modules are funky in Sublime Text
 """
     Patch utility to apply unified diffs
 
-    Brute-force line-by-line non-recursive parsing 
+    Brute-force line-by-line non-recursive parsing
 
     Copyright (c) 2008-2016 anatoly techtonik
     Available under the terms of MIT license
@@ -849,6 +849,7 @@ class PatchSet(object):
                 debug("   %s" % p.target)
                 old = pathstrip(p.source, strip)
                 new = pathstrip(p.target, strip)
+                print("stripping :O")
             else:
                 old, new = p.source, p.target
 

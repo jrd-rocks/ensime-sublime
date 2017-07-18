@@ -77,7 +77,7 @@ class _EnsimeEnvironment(object):
         # self.recalc()
 
     def create_logger(self, debug, log_file):
-        logger = logging.getLogger("ensime")
+        logger = logging.getLogger("ensime-{}".format(self.window))
         file_log_formatter = logging.Formatter(LOG_FORMAT)
         console_log_formatter = logging.Formatter(CONSOLE_LOG_FORMAT)
 
@@ -159,6 +159,7 @@ class _EnsimeEnvironment(object):
         self.notes_storage = None
         self.editor = None
         self.client = None
+        self.logger.handlers.clear()
         self.logger = None
         # reverting changings to user preferences
         s = sublime.load_settings("Preferences.sublime-settings")

@@ -60,8 +60,12 @@ class EnsimeClient(ProtocolHandler, DebugHandler):
         self.number_try_connection = 1
 
         self.debug_thread_id = None
+
+        # status
         self.running = True  # queue poll is running
         self.connected = False  # connected to ensime server through websocket
+        self.analyzer_ready = False
+        self.indexer_ready = False
 
         thread = Thread(name='queue-poller', target=self.queue_poll)
         thread.daemon = True
@@ -126,9 +130,7 @@ class EnsimeClient(ProtocolHandler, DebugHandler):
             if self.ensime.is_ready():
                 self.connected = self.connect_ensime_server()
 
-            if self.connected:
-                self.env.logger.info("Connected to the server through websocket.")
-            else:
+            if not self.connected:
                 fallback()
                 self.env.logger.info("Couldn't connect to the server waited to long :(")
         else:
@@ -150,7 +152,7 @@ class EnsimeClient(ProtocolHandler, DebugHandler):
         self.running = initialize_ensime()
         if self.running:
             connect_when_ready_thread = Thread(target=self.connect_when_ready,
-                                               args=(self.connection_timeout, self.shutdown_server))
+                                               args=(self.connection_timeout, self.teardown))
             connect_when_ready_thread.daemon = True
             connect_when_ready_thread.start()
 

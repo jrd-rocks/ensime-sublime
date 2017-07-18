@@ -2,6 +2,7 @@ import os
 from contextlib import contextmanager
 from pprint import pformat
 
+
 @contextmanager
 def catch(exception, handler=lambda e: None):
     """If exception runs handler."""
@@ -29,6 +30,14 @@ class Util(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
+    @staticmethod
+    def is_scala(path):
+        return path.endswith(".scala")
+
+    @staticmethod
+    def is_java(path):
+        return path.endswith(".java")
+
 
 class Pretty(object):
     """Wrapper to pretty-format object's string representation.
@@ -36,7 +45,6 @@ class Pretty(object):
     Reduces boilerplate for logging statements where we don't want to eagerly
     :func:`pprint.pformat` when the logging level isn't enabled.
     """
-
     def __init__(self, data):
         self._data = data
 

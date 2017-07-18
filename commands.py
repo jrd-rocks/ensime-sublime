@@ -8,6 +8,7 @@ from core import EnsimeWindowCommand, EnsimeTextCommand
 from env import getEnvironment
 from launcher import EnsimeLauncher
 from client import EnsimeClient
+from util import Util
 from outgoing import (TypeCheckFilesReq,
                       SymbolAtPointReq,
                       ImportSuggestionsReq,
@@ -46,7 +47,10 @@ class EnsimeShutdown(EnsimeWindowCommand):
 
 class EnsimeShowErrors(EnsimeWindowCommand):
     def is_enabled(self):
-        return bool(self.env and self.env.is_connected() and len(self.env.window.views()) > 0)
+        return bool(self.env and
+                    self.env.is_connected() and
+                    len(self.env.window.views()) > 0 and
+                    self.env.client.analyzer_ready)
 
     def run(self):
         self.env.editor.show_errors = True
@@ -55,18 +59,27 @@ class EnsimeShowErrors(EnsimeWindowCommand):
 
 class EnsimeEventListener(sublime_plugin.EventListener):
     def on_load(self, view):
+        file = view.file_name()
+        if not (Util.is_scala(file) or Util.is_java(file)):
+            return
         env = getEnvironment(view.window())
-        if env and env.is_connected():
+        if env and env.is_connected() and env.client.analyzer_ready:
             TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
 
     def on_post_save(self, view):
+        file = view.file_name()
+        if not (Util.is_scala(file) or Util.is_java(file)):
+            return
         env = getEnvironment(view.window())
-        if env and env.is_connected():
+        if env and env.is_connected() and env.client.analyzer_ready:
             TypeCheckFilesReq([view.file_name()]).run_in(env, async=True)
 
     def on_query_completions(self, view, prefix, locations):
+        file = view.file_name()
+        if not (Util.is_scala(file) or Util.is_java(file)):
+            return
         env = getEnvironment(view.window())
-        if env and env.is_connected():
+        if env and env.is_connected() and env.client.indexer_ready:
             if (env.editor.ignore_prefix and prefix.startswith(env.editor.ignore_prefix)):
                 return []
             else:
@@ -102,7 +115,7 @@ class EnsimeEventListener(sublime_plugin.EventListener):
 class EnsimeGoToDefinition(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected())
+        return bool(env and env.is_connected() and env.client.indexer_ready)
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
@@ -121,7 +134,7 @@ class EnsimeGoToDefinition(EnsimeTextCommand):
 class EnsimeAddImport(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected())
+        return bool(env and env.is_connected() and env.client.indexer_ready)
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
@@ -136,7 +149,7 @@ class EnsimeAddImport(EnsimeTextCommand):
 class EnsimeOrganiseImports(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected())
+        return bool(env and env.is_connected() and env.client.analyzer_ready)
 
     def run(self, edit):
         env = getEnvironment(self.view.window())
@@ -148,7 +161,7 @@ class EnsimeOrganiseImports(EnsimeTextCommand):
 class EnsimeRename(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected())
+        return bool(env and env.is_connected() and env.client.analyzer_ready)
 
     def run(self, edit):
         env = getEnvironment(self.view.window())
@@ -173,7 +186,7 @@ class EnsimeRename(EnsimeTextCommand):
 class EnsimeInlineLocal(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected())
+        return bool(env and env.is_connected() and env.client.analyzer_ready)
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
@@ -187,7 +200,7 @@ class EnsimeInlineLocal(EnsimeTextCommand):
 class EnsimeShowType(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected())
+        return bool(env and env.is_connected() and env.client.indexer_ready)
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())
@@ -206,7 +219,7 @@ class EnsimeShowType(EnsimeTextCommand):
 class EnsimeBrowseDocAtPoint(EnsimeTextCommand):
     def is_enabled(self):
         env = getEnvironment(sublime.active_window())
-        return bool(env and env.is_connected())
+        return bool(env and env.is_connected() and env.client.analyzer_ready)
 
     def run(self, edit, target=None):
         env = getEnvironment(self.view.window())

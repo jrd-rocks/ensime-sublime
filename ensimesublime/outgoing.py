@@ -2,7 +2,7 @@ import json
 
 from util import Pretty
 
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 300
 COMPLETION_TIMEOUT = 5
 
 

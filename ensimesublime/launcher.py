@@ -137,11 +137,25 @@ class LaunchStrategy:
             [a for a in java_flags if a] +
             ["-Densime.config={}".format(os.path.join(self.config['root-dir'], '.ensime')),
              "org.ensime.server.Server"])
-        process = subprocess.Popen(
-            args,
-            stdin=null,
-            stdout=log,
-            stderr=subprocess.STDOUT)
+        process = None
+        if os.name == "nt":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow |= 1  # SW_SHOWNORMAL
+            creationflags = 0x08000000  # CREATE_NO_WINDOW
+            process = subprocess.Popen(
+                args,
+                stdin=null,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                startupinfo=startupinfo,
+                creationflags=creationflags)
+        else:
+            process = subprocess.Popen(
+                args,
+                stdin=null,
+                stdout=log,
+                stderr=subprocess.STDOUT)
         pid_path = os.path.join(cache_dir, "server.pid")
         Util.write_file(pid_path, str(process.pid))
         http_path = os.path.join(cache_dir, "http")

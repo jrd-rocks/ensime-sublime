@@ -73,6 +73,10 @@ class ProtocolHandler(object):
 
     def handle_connection_info(self, call_id, payload):
         self.server_version = payload.get("version", "unknown")
+        self.env.logger.info("Connected to the ensime server {} through websocket. \
+Please wait while we get the analyzer and indexer ready. Indexing files may take a while and \
+consequently few of the commands may take longer to get enabled."
+                             .format(self.server_version))
 
     def handle_background_message(self, call_id, payload):
         self.env.logger.info("{} : {}"
@@ -80,9 +84,11 @@ class ProtocolHandler(object):
                                      payload.get("detail", "no detail")))
 
     def handle_indexer_ready(self, call_id, payload):
+        self.indexer_ready = True  # used to enable commands that depend on indexer
         self.env.logger.info("Indexer is ready.")
 
     def handle_analyzer_ready(self, call_id, payload):
+        self.analyzer_ready = True  # used to enable commands that depend on analyzer
         self.env.logger.info("Analyzer is ready.")
         files = []
         for view in self.env.window.views():
@@ -234,7 +240,7 @@ class ProtocolHandler(object):
         result = patch_set.apply(0, "/")
         if result:
             file = self.refactorings[payload['procedureId']]
-            sublime.set_timeout(bind(self.env.editor.reload_file, self.env.window.find_open_file(file)), 0)
+            sublime.set_timeout(bind(self.env.editor.reload_file, file), 0)
             self.env.logger.info("Refactoring succeeded, patch file: {}"
                                  .format(diff_file))
             self.env.status_message("Refactoring succeeded")
