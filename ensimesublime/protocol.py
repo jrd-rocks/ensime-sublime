@@ -86,7 +86,7 @@ consequently the context menu commands may take longer to get enabled. You may c
 
     def handle_indexer_ready(self, call_id, payload):
         self.indexer_ready = True  # used to enable commands that depend on indexer
-        self.env.logger.info("Indexer is ready.")
+        self.env.logger.info("Indexer is ready. Context menu commands are alive! :D")
 
     def handle_analyzer_ready(self, call_id, payload):
         self.analyzer_ready = True  # used to enable commands that depend on analyzer
