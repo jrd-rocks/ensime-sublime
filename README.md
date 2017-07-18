@@ -1,188 +1,54 @@
-# ENSIME Sublime
+## Introduction
+This is a beta write of the new enisme plugin for sublime-text 3. The documentation for the stable ensime-sublime plugin is at http://ensime.org/editors/sublime/ and github repository at https://github.com/ensime/ensime-sublime.
 
-[![Join the chat at https://gitter.im/ensime/ensime-sublime](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ensime/ensime-sublime?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+## Setup
+If you have been using the _Ensime_ plugin for sublime-text, first remove it through _Package Control_. This can be done by the following steps:
+1. Go to _'Preferences'->'Package Control'_
+2. Select _'Remove Package'_
+3. Select _'Ensime'_
 
-ENSIME Sublime provides Scala support to Sublime Text 3.
+To then try out this beta version of ensime-sublime on sublime-text you need to:
 
-The project is in active development.
-Watch this space for news and improvements,
-and submit issues to [our tracker](https://github.com/ensime/ensime-sublime/issues/new).
+1. Open the _Packages_ directory of sublime-text.
 
-Note: Sublime Text 2 support is deprecated.
-All active development is happening for Sublime Text 3.
-If you are interest in Sublime Text 2 support, consider contributing to the
-[Sublime Text 2 Branch](https://github.com/ensime/ensime-sublime/tree/ST2).
+To go to your packages directory open sublime-text and go to _'Preferences' -> 'Browse Packages'_.
+This opens up the _Packages_ directory in the explorer window.
 
-## Project status
+For GNU/linux systems the _Packages_ directory for sublime text is generally at _'~/.config/sublime-text-3/Packages/'_
 
-The project is up and functional and supports a subset of the ENSIME features:
+2. Clone the repository at https://github.com/VC1995/ensime-sublime here and checkout the _rewrite_ branch.  
 
-* error highlighting
-* code completion (hit `.` followed by `ctrl-space` or `command-space`)
-* goto definition
-* type hints
-* extract local, extract method
-* add import, organize imports
-* supports Scala 2.10 and 2.11
+**EASY WAY** (for GNU/Linux systems) : Once in the _Packages_ directory, open the directory in the terminal through _'Open in terminal'_ from context menu and run the following command : 
 
-## Getting it going
+```
+$ git clone -b rewrite https://github.com/VC1995/ensime-sublime
+```
 
-[Installation Instructions](http://ensime.github.io/editors/sublime/installation/ "Installation Instructions")
+Once you have done this, you must restart sublime-text if it was open. If it worked you should now see _'Ensime'_ in the _'Tools'_ menu of sublime-text.  
 
-## What Does ENSIME Sublime Do?
+You may now open up your scala project in sublime-text. This can be done through _'File' -> 'Open Folder'_ and selecting the root folder(one containing the .ensime file) of your project.
 
-Once you have run the *"Ensime: Startup"* command,
-ENSIME Sublime will enrich your Scala experience with the following features:
+**If you haven't yet created any _.ensime_ file for your project, that's what you must do next. Instructions for doing so can be found at http://ensime.org/build_tools/sbt/**
 
-- Syntax highlighting
-  - Highlighting is semantic rather than regex-based.
-  - If you make a mistake, it is outlined in red.
+**NOTE**
+If you have been using an old version of ensime, update ensime before trying out this plugin.
 
-- Mouse commands
-  - Right-clicking yields useful context menu items.
-  - `Ctrl-Click` or `Cmd-Click` invokes *Go to Definition*.
-  - `Alt-Click` invokes *Inspect Type at Point*.
+## Startup
+The ensime server can the be started by going to _'Tools' -> 'Ensime' -> 'Maintainence' -> 'Startup'_ 
+You can see the logs being generated in _'<project_directory>/.ensime-cache/'_. Once connection to ensime-server is established, errors are highlighted and shown in any of the scala files that were already open.
 
-- Keyboard
-  - Typing `Ctrl-Space` will show an autocomplete menu.
-  - Other keybindings can be added via keymaps (see below).
+Opening a file in a new tab on the same window now leads to typechecing the file and highlights errors if any.
+The file is also typechecked post a save operation, which redraws the highlighted areas. However modifying a file doesn't lead to any change in the highlighted areas.
 
-## Additional Configuration
+The errors and warning messages are shown by default when ensime server is started. Once hidden(by clicking on any of the close icons), you can display them again by either pressing _(Ctrl+alt+e)_ or going to _'Tools'->'Ensime'->'Development'->'Show errors and warnings'_. 
 
-### Line Endings (Windows Users)
+### 'Go to definition'
+(or jump to source) can be called either through the context menu(which appears by right clicking anywhere on the view) or through _(Ctrl+left_mouse_button)_.
+The position used to pick up the symbol for _'Go to definition'_ is either the cursor target or beggining of selection if any and not where the mouse is clicked. The behavior is undefined when you have multiple cursors(a feature of sublime-text) and is set not to work if there are more than 2 cursors. 
 
-Windows users should ensure the `Line Endings` setting is set to `Unix`.
-Go to *View Menu / Line Endings* and select *Unix*.
+### Refactoring
+The refactoring options available are **'Add import'**, **'Organise imports'**, **'Rename'** and **'Inline local'**. The keyboard shortcuts for _'Add import'_ and _'Organise imports'_ are _'Ctrl+alt+i'_ and _'Ctrl+alt+o'_ respectively, while the other two are accessible only through the context menu.
+The _'Rename'_ option requires a single selected are in the view that contains the symbol to be renamed.
 
-### Mouse Clicks
-
-ENSIME Sublime customizes mouse bindings.
-It makes `Ctrl+Click`/`Cmd+Click` invoke `Go to Definition`
-and `Alt+Click` stand for `Inspect Type at Point`.
-
-These bindings can be altered in the the config:
-*Preferences Menu / Package Settings / Ensime / Mousemap - Default*.
-
-### Key Bindings
-
-`Ctrl+Space` invokes code completion by default.
-
-Other keybindings can be enabled in the config:
-*Preferences Menu / Package Settings / Ensime / Keymap - Default*.
-
-## Troubleshooting
-
-Below are some helpful hints troubleshooting hints.  For more hints, checkout [the troubleshooting page](http://ensime.github.io/editors/sublime/troubleshooting/).
-
-### Checking Java and SBT Visiblity
-
-Unsure whether Sublime Text can see Java and SBT on your system application path?
-Try pasting the following commands one at a time into the Sublime Text console
-(*View menu / Show Console*).
-
-On Linux or OS X:
-
-~~~ python
-# Check the visibility of Java:
-import subprocess; print(subprocess.check_output(['which', 'java'], stderr=subprocess.STDOUT).decode("utf-8"))
-
-# Check the visibility of SBT:
-import subprocess; print(subprocess.check_output(['which', 'sbt'], stderr=subprocess.STDOUT).decode("utf-8"))
-~~~
-
-On Windows:
-
-~~~ python
-# Check the visibility of Java:
-import subprocess; print(subprocess.check_output(['where', 'java'], stderr=subprocess.STDOUT).decode("utf-8"))
-
-# Check the visibility of SBT:
-import subprocess; print(subprocess.check_output(['where', 'sbt'], stderr=subprocess.STDOUT).decode("utf-8"))
-~~~
-
-In each case you should see a path string, something like this:
-
-~~~
-b'/usr/bin/java\n'
-~~~
-
-If you see and error message like this, Sublime Text can't see the relevant executable:
-
-~~~
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "./subprocess.py", line 589, in check_output
-subprocess.CalledProcessError: Command '['which', 'java']' returned non-zero exit status 1
-~~~
-
-### Checking Java and SBT Versions
-
-Ideally you should be using Java 8 and SBT 0.13.x.
-To check this, paste the following commands one at a time into the console
-(*View Menu / Show Console*):
-
-~~~ python
-# Check the Java version:
-import subprocess; print(subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT).decode("utf-8"))
-
-# Check the SBT version:
-import subprocess; print(subprocess.check_output(['sbt', 'sbtVersion'], stderr=subprocess.STDOUT).decode("utf-8"))
-~~~
-
-### No Commands in the Command Palette?
-
-If your command palette doesn't contain the *Ensime: Startup* menu item,
-it is most likely because ENSIME Sublime can't find your `.ensime` file:
-
-- Ensure you have created a `.ensime` file using the `gen-ensime` command.
-
-  If you have recently (re)generated your `.ensime` file,
-  you may have to quit and restart Sublime Text to pick up the changes.
-
-- Ensure the top-most item in the Side Bar (*View Menu / Side Bar / Show Side Bar*)
-  is your project directory (the one containing the `.ensime` file).
-
-  If not, choose *File Menu / Open...* and open the project directory directly.
-
-### Line Endings
-
-If you find that some features of Ensime are not working properly
-(e.g. *Go To Definition* or *Error Highlighting*), check the *Line Endings* setting in Sublime Text.
-
-On Windows, the line endings is set to *Windows* by default. ENSIME Sublime requires it to be *Unix*.
-Change the setting by going to *View menu / Line Endings* and selecting *Unix*.
-
-Also check *View menu / Console* for log information.
-
-## Tips for ENSIME Developers
-
-If you are hacking on ENSIME Sublime, there are a few things you may want to do differently.
-
-### Installing ENSIME Sublime
-
-Rather than installing ENSIME Sublime via Package Control, check out the Git repo
-directly into the directory you end up in when you choose *Preferences / Browse Packages*.
-
-This will Sublime Text to pick up changes in the plugin codebase live as you edit it!
-
-### Configuring ENSIME Sublime
-
-By default, when you run the *Ensime: Startup* command, ENSIME Sublime starts a new instance of ENSIME Server.
-If you are hacking on ENSIME Server, you may find it useful to disable this behaviour.
-
-To get ENSIME to connect to a pre-existing server instead,
-go to *Preferences / Package Settings / Ensime / Settings - User` and add the following config entry:
-
-~~~ javascript
-{
-  // other config entries...
-  "connect_to_external_server": false
-}
-~~~
-
-To revert to the default behaviour, set the entry back to `true`.
-
-## Contacts
-
-Submit issues on the [tracker](https://github.com/ensime/ensime-sublime/issues)
-or come find us on [Gitter](https://gitter.im/ensime/ensime-sublime).
+## Shutdown
+The server can be shutdown by going to _'Tools'->'Ensime'->'Maintenance'->'Shutdown'_. Same can be confirmed through the logs. This removes the highlights from any open view.

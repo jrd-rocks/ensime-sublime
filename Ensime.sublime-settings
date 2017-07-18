@@ -22,9 +22,11 @@
 
   // stylistic settings
   "error_highlight": true,
-  "error_underline": false,
   "error_scope": "invalid.illegal",
   "error_icon": "",
+  "warning_highlight": false,
+  "warning_scope": "invalid.deprecated",
+  "warning_icon": "",
   "breakpoint_scope": "ensime.breakpoint",
   "breakpoint_icon": "circle",
   "debugfocus_scope": "ensime.debugfocus",
@@ -37,6 +39,7 @@
   "sbt_flags": ["-Dsbt.log.noformat=true"],
 
   // miscellaneous settings
+  "debug": false,
   "debug_autolayout": true,
   "debug_layout_when_entering_debugmode": {
     "layout": {
@@ -64,5 +67,9 @@
   "connect_to_external_server": false,
   "os_independent_paths_in_dot_ensime": false,
   "plugin_version": "0.9.0",
-  "min_ensime_server_version": "0.9.8.6"
+  "min_ensime_server_version": "0.9.8.6",
+
+  //sublime settings 
+  "show_definitions": false,
+  "auto_complete": false,
 }
