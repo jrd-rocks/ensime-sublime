@@ -11,8 +11,7 @@ from outgoing import AddImportRefactorDesc, TypeCheckFilesReq
 from patch import fromfile
 from config import feedback, gconfig
 from symbol_format import completion_to_suggest, type_to_show
-
-from pathlib2 import Path
+from paths import root_as_str_from_abspath
 
 class ProtocolHandler(object):
     """Mixin for common behavior of handling ENSIME protocol responses.
@@ -239,10 +238,9 @@ consequently the context menu commands may take longer to get enabled. You may c
             self.env.logger.warning("Couldn't parse diff_file: {}"
                                     .format(diff_file))
             return
-        path =  Path(self.refactorings[payload['procedureId']])
         self.env.logger.debug("Refactoring get root from: {}"
                                  .format(self.refactorings[payload['procedureId']]))
-        root = path.drive or path.root
+        root = root_as_str_from_abspath(self.refactorings[payload['procedureId']])
         self.env.logger.debug("Refactoring set root: {}"
                                  .format(root))
         result = patch_set.apply(0, root)
